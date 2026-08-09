@@ -41,6 +41,13 @@ ztools.onPluginEnter((action: any) => {
   }
 
   // 默认打开文件选择
+  if (action.code === 'convert-pdf') {
+    window.dispatchEvent(
+      new CustomEvent('ztools-trigger-action', { detail: { action: 'convert' } })
+    )
+    return
+  }
+
   if (action.code === 'open-pdf') {
     window.dispatchEvent(new CustomEvent('ztools-trigger-action', { detail: { action: 'open' } }))
   }

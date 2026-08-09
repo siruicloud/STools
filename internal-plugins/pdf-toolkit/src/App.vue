@@ -16,6 +16,7 @@
         :total-pages="totalPages"
         @open-file="openFilePicker"
       />
+      <PdfConverter v-else-if="currentMode === 'convert'" />
     </main>
   </div>
 </template>
@@ -26,8 +27,9 @@ import Sidebar from './components/Sidebar.vue'
 import PdfViewer from './components/PdfViewer.vue'
 import PdfMerger from './components/PdfMerger.vue'
 import PdfSplitter from './components/PdfSplitter.vue'
+import PdfConverter from './components/PdfConverter.vue'
 
-const currentMode = ref<'view' | 'merge' | 'split'>('view')
+const currentMode = ref<'view' | 'merge' | 'split' | 'convert'>('view')
 const currentPdf = ref<string | null>(null)
 const totalPages = ref(0)
 
@@ -56,6 +58,8 @@ function handleTrigger(event: Event) {
   const detail = (event as CustomEvent).detail
   if (detail.action === 'merge') {
     currentMode.value = 'merge'
+  } else if (detail.action === 'convert') {
+    currentMode.value = 'convert'
   } else if (detail.action === 'open') {
     openFilePicker()
   }

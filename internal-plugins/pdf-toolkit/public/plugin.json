@@ -33,6 +33,12 @@
           "maxLength": 10
         }
       ]
+    },
+    {
+      "code": "convert-pdf",
+      "explain": "PDF 格式转换",
+      "icon": "logo.png",
+      "cmds": ["PDF 转换", "格式转换", "pdf convert"]
     }
   ]
 }

@@ -47,6 +47,14 @@
         <span class="nav-icon">✂️</span>
         <span>拆分 PDF</span>
       </button>
+      <button
+        class="nav-item"
+        :class="{ active: modelValue === 'convert' }"
+        @click="$emit('update:modelValue', 'convert')"
+      >
+        <span class="nav-icon">🔄</span>
+        <span>格式转换</span>
+      </button>
     </nav>
 
     <div class="sidebar-footer">
@@ -59,11 +67,11 @@
 
 <script setup lang="ts">
 defineProps<{
-  modelValue: 'view' | 'merge' | 'split'
+  modelValue: 'view' | 'merge' | 'split' | 'convert'
 }>()
 
 defineEmits<{
-  'update:modelValue': [value: 'view' | 'merge' | 'split']
+  'update:modelValue': [value: 'view' | 'merge' | 'split' | 'convert']
   'open-file': []
 }>()
 </script>
