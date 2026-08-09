@@ -7,6 +7,246 @@ import {
   requestPluginMarket
 } from './pluginMarketConfig'
 
+// ━━━ Mock Data Toggle ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+/** 设置为 true 启用本地模拟数据（用于开发/测试插件市场流程） */
+const USE_MOCK_DATA = true
+
+const MOCK_PLUGINS: PluginMarketPlugin[] = [
+  {
+    name: 'morse-code',
+    version: '1.0.0',
+    title: '莫斯密码',
+    description:
+      '莫斯密码加解密工具，支持加密、解密、对照表查看，一键复制结果。支持快速加密粘贴的文本，快速解密粘贴的莫斯密码。',
+    logo: "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='100' height='100'%3E%3Crect width='100' height='100' fill='%234A90D9'/%3E%3Ctext x='50' y='60' font-size='40' fill='white' text-anchor='middle' font-family='sans-serif'%3EM%3C/text%3E%3C/svg%3E",
+    author: 'Zing',
+    homepage: 'https://github.com/example/morse-code',
+    size: 51200,
+    publishedAt: Date.now() - 86400000 * 5,
+    updatedAt: Date.now() - 86400000 * 2,
+    downloadCount: 1520,
+    categoryId: 1,
+    categoryTitle: '效率工具'
+  },
+  {
+    name: 'json-formatter',
+    version: '2.1.0',
+    title: 'JSON 格式化',
+    description: 'JSON 格式化、压缩、校验工具，支持树形视图和语法高亮，一键转换 XML/YAML。',
+    logo: "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='100' height='100'%3E%3Crect width='100' height='100' fill='%23FF6B6B'/%3E%3Ctext x='50' y='60' font-size='40' fill='white' text-anchor='middle' font-family='sans-serif'%3EJ%3C/text%3E%3C/svg%3E",
+    author: 'DevTeam',
+    homepage: 'https://github.com/example/json-formatter',
+    size: 128000,
+    publishedAt: Date.now() - 86400000 * 30,
+    updatedAt: Date.now() - 86400000 * 1,
+    downloadCount: 8900,
+    categoryId: 2,
+    categoryTitle: '开发工具'
+  },
+  {
+    name: 'color-picker-pro',
+    version: '1.5.2',
+    title: '取色器 Pro',
+    description: '屏幕取色、颜色转换、调色板管理，支持 HEX/RGB/HSL 格式，历史颜色记录。',
+    logo: "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='100' height='100'%3E%3Crect width='100' height='100' fill='%2350C878'/%3E%3Ctext x='50' y='60' font-size='40' fill='white' text-anchor='middle' font-family='sans-serif'%3EC%3C/text%3E%3C/svg%3E",
+    author: 'DesignLab',
+    homepage: 'https://github.com/example/color-picker',
+    size: 76800,
+    publishedAt: Date.now() - 86400000 * 60,
+    updatedAt: Date.now() - 86400000 * 10,
+    downloadCount: 5600,
+    categoryId: 3,
+    categoryTitle: '设计工具'
+  },
+  {
+    name: 'system-monitor',
+    version: '3.0.1',
+    title: '系统监控',
+    description: 'CPU、内存、磁盘、网络实时监控，支持悬浮窗和告警，历史数据导出。',
+    logo: "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='100' height='100'%3E%3Crect width='100' height='100' fill='%23FFA500'/%3E%3Ctext x='50' y='60' font-size='40' fill='white' text-anchor='middle' font-family='sans-serif'%3ES%3C/text%3E%3C/svg%3E",
+    author: 'SysAdmin',
+    homepage: 'https://github.com/example/sys-monitor',
+    size: 204800,
+    publishedAt: Date.now() - 86400000 * 90,
+    updatedAt: Date.now() - 86400000 * 3,
+    downloadCount: 12000,
+    categoryId: 4,
+    categoryTitle: '系统工具'
+  },
+  {
+    name: 'clipboard-manager',
+    version: '2.0.0',
+    title: '剪贴板增强',
+    description: '剪贴板历史记录、搜索、图片预览、跨设备同步，支持富文本和文件。',
+    logo: "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='100' height='100'%3E%3Crect width='100' height='100' fill='%239370DB'/%3E%3Ctext x='50' y='60' font-size='40' fill='white' text-anchor='middle' font-family='sans-serif'%3EC%3C/text%3E%3C/svg%3E",
+    author: 'Productivity',
+    homepage: 'https://github.com/example/clipboard',
+    size: 153600,
+    publishedAt: Date.now() - 86400000 * 120,
+    updatedAt: Date.now() - 86400000 * 4,
+    downloadCount: 21000,
+    categoryId: 1,
+    categoryTitle: '效率工具'
+  },
+  {
+    name: 'ai-translator',
+    version: '1.2.0',
+    title: 'AI 翻译',
+    description: '基于大模型的智能翻译，支持多语言、上下文理解、专业术语，一键复制。',
+    logo: "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='100' height='100'%3E%3Crect width='100' height='100' fill='%2300CED1'/%3E%3Ctext x='50' y='60' font-size='40' fill='white' text-anchor='middle' font-family='sans-serif'%3EA%3C/text%3E%3C/svg%3E",
+    author: 'AI Lab',
+    homepage: 'https://github.com/example/ai-translator',
+    size: 307200,
+    publishedAt: Date.now() - 86400000 * 150,
+    updatedAt: Date.now() - 86400000 * 5,
+    downloadCount: 34000,
+    categoryId: 5,
+    categoryTitle: 'AI 工具'
+  },
+  {
+    name: 'regex-helper',
+    version: '1.0.5',
+    title: '正则助手',
+    description: '正则表达式编写、测试、解释工具，内置常用表达式库，支持高亮匹配。',
+    logo: "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='100' height='100'%3E%3Crect width='100' height='100' fill='%23FF1493'/%3E%3Ctext x='50' y='60' font-size='40' fill='white' text-anchor='middle' font-family='sans-serif'%3ER%3C/text%3E%3C/svg%3E",
+    author: 'CodeMaster',
+    homepage: 'https://github.com/example/regex',
+    size: 81920,
+    publishedAt: Date.now() - 86400000 * 200,
+    updatedAt: Date.now() - 86400000 * 6,
+    downloadCount: 4200,
+    categoryId: 2,
+    categoryTitle: '开发工具'
+  },
+  {
+    name: 'markdown-preview',
+    version: '2.3.0',
+    title: 'Markdown 预览',
+    description: '实时 Markdown 预览、导出 PDF/HTML、支持数学公式和流程图。',
+    logo: "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='100' height='100'%3E%3Crect width='100' height='100' fill='%2332CD32'/%3E%3Ctext x='50' y='60' font-size='40' fill='white' text-anchor='middle' font-family='sans-serif'%3EM%3C/text%3E%3C/svg%3E",
+    author: 'WriterPro',
+    homepage: 'https://github.com/example/markdown',
+    size: 102400,
+    publishedAt: Date.now() - 86400000 * 250,
+    updatedAt: Date.now() - 86400000 * 7,
+    downloadCount: 18000,
+    categoryId: 1,
+    categoryTitle: '效率工具'
+  }
+]
+
+const MOCK_COMMENTS: Record<string, PluginMarketCommentItem[]> = {
+  'morse-code': [
+    {
+      id: 1,
+      pluginName: 'morse-code',
+      uid: 'u1',
+      nickname: 'UserA',
+      content: '很好用的工具，赞！',
+      likeCount: 10,
+      liked: false,
+      createdAt: Date.now() - 100000,
+      updatedAt: Date.now() - 100000
+    },
+    {
+      id: 2,
+      pluginName: 'morse-code',
+      uid: 'u2',
+      nickname: 'UserB',
+      content: '希望能支持音频播放莫斯密码。',
+      likeCount: 5,
+      liked: false,
+      createdAt: Date.now() - 50000,
+      updatedAt: Date.now() - 50000
+    },
+    {
+      id: 3,
+      pluginName: 'morse-code',
+      uid: 'u3',
+      nickname: 'UserC',
+      content: '对照表很全，复制功能很方便。',
+      likeCount: 3,
+      liked: false,
+      createdAt: Date.now() - 20000,
+      updatedAt: Date.now() - 20000
+    }
+  ],
+  'json-formatter': [
+    {
+      id: 4,
+      pluginName: 'json-formatter',
+      uid: 'u4',
+      nickname: 'DevD',
+      content: '树形视图太棒了，调试必备。',
+      likeCount: 15,
+      liked: false,
+      createdAt: Date.now() - 150000,
+      updatedAt: Date.now() - 150000
+    }
+  ],
+  'color-picker-pro': [
+    {
+      id: 5,
+      pluginName: 'color-picker-pro',
+      uid: 'u5',
+      nickname: 'DesignerE',
+      content: '取色非常准，调色板管理很实用。',
+      likeCount: 8,
+      liked: false,
+      createdAt: Date.now() - 300000,
+      updatedAt: Date.now() - 300000
+    }
+  ]
+}
+
+const MOCK_BANNERS = [
+  {
+    title: '莫斯密码插件上线',
+    imageUrl:
+      "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='800' height='200'%3E%3Crect width='800' height='200' fill='%234A90D9'/%3E%3Ctext x='400' y='110' font-size='40' fill='white' text-anchor='middle' font-family='sans-serif'%3EMorse Code Plugin Released%3C/text%3E%3C/svg%3E",
+    linkUrl: ''
+  },
+  {
+    title: 'AI 翻译插件更新',
+    imageUrl:
+      "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='800' height='200'%3E%3Crect width='800' height='200' fill='%2300CED1'/%3E%3Ctext x='400' y='110' font-size='40' fill='white' text-anchor='middle' font-family='sans-serif'%3EAI Translator Updated%3C/text%3E%3C/svg%3E",
+    linkUrl: ''
+  }
+]
+
+const MOCK_CATEGORIES: MarketCategoryResponse[] = [
+  {
+    id: 1,
+    title: '效率工具',
+    description: '提升日常工作效率的实用插件',
+    plugins: MOCK_PLUGINS.filter((p) => p.categoryTitle === '效率工具')
+  },
+  {
+    id: 2,
+    title: '开发工具',
+    description: '开发者专属的编码、调试、格式化工具',
+    plugins: MOCK_PLUGINS.filter((p) => p.categoryTitle === '开发工具')
+  },
+  {
+    id: 3,
+    title: '设计工具',
+    description: '取色、排版、图像处理等设计辅助插件',
+    plugins: MOCK_PLUGINS.filter((p) => p.categoryTitle === '设计工具')
+  },
+  {
+    id: 4,
+    title: '系统工具',
+    description: '系统监控、清理、优化等底层工具',
+    plugins: MOCK_PLUGINS.filter((p) => p.categoryTitle === '系统工具')
+  },
+  {
+    id: 5,
+    title: 'AI 工具',
+    description: '集成大模型能力的智能插件',
+    plugins: MOCK_PLUGINS.filter((p) => p.categoryTitle === 'AI 工具')
+  }
+]
+
 // ━━━ Types ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
 /** 插件市场中单个插件的描述信息（来自 ZTools 线上市场 API） */
@@ -203,6 +443,10 @@ export class PluginMarketAPI {
    * @returns 插件列表和可选的 storefront 视图数据
    */
   public async fetchPluginMarket(): Promise<PluginMarketResult> {
+    if (USE_MOCK_DATA) {
+      return this.getMockPluginMarketResult()
+    }
+
     const getCachedResult = (): PluginMarketResult | null => {
       const cachedData = databaseAPI.dbGet('plugin-market-data')
       if (!Array.isArray(cachedData)) {
@@ -280,6 +524,10 @@ export class PluginMarketAPI {
     pluginName: string,
     platform = process.platform
   ): Promise<PluginMarketLatestResult> {
+    if (USE_MOCK_DATA) {
+      return this.getMockLatestPlugin(pluginName)
+    }
+
     const normalizedName = pluginName.trim()
     if (!normalizedName) {
       throw new Error('插件名称不能为空')
@@ -342,6 +590,10 @@ export class PluginMarketAPI {
   public async fetchPluginMarketRecommendations(
     limit = PLUGIN_MARKET_RECOMMEND_LIMIT
   ): Promise<PluginMarketPlugin[]> {
+    if (USE_MOCK_DATA) {
+      return this.getMockRecommendations(limit)
+    }
+
     const marketApiBase = getPluginMarketApiBase()
     const timestamp = Date.now()
     const platform = process.platform
@@ -372,6 +624,19 @@ export class PluginMarketAPI {
     error?: string
     authRequired?: boolean
   }> {
+    if (USE_MOCK_DATA) {
+      const all = MOCK_COMMENTS[pluginName] || []
+      const start = (page - 1) * pageSize
+      const items = all.slice(start, start + pageSize)
+      return {
+        success: true,
+        data: {
+          items,
+          page: { page, pageSize, total: all.length }
+        }
+      }
+    }
+
     try {
       const query = new URLSearchParams({
         pluginName,
@@ -396,6 +661,23 @@ export class PluginMarketAPI {
     error?: string
     authRequired?: boolean
   }> {
+    if (USE_MOCK_DATA) {
+      const newComment: PluginMarketCommentItem = {
+        id: Date.now(),
+        pluginName: input.pluginName,
+        uid: 'mock-user',
+        nickname: '当前用户',
+        content: input.content,
+        likeCount: 0,
+        liked: false,
+        createdAt: Date.now(),
+        updatedAt: Date.now()
+      }
+      if (!MOCK_COMMENTS[input.pluginName]) MOCK_COMMENTS[input.pluginName] = []
+      MOCK_COMMENTS[input.pluginName].unshift(newComment)
+      return { success: true, data: newComment }
+    }
+
     try {
       const response = await requestPluginMarket(
         '/plugins/comments',
@@ -418,6 +700,18 @@ export class PluginMarketAPI {
     error?: string
     authRequired?: boolean
   }> {
+    if (USE_MOCK_DATA) {
+      for (const list of Object.values(MOCK_COMMENTS)) {
+        const c = list.find((item) => item.id === commentId)
+        if (c) {
+          c.liked = !c.liked
+          c.likeCount += c.liked ? 1 : -1
+          return { success: true, data: { liked: c.liked, likeCount: c.likeCount } }
+        }
+      }
+      return { success: false, error: '评论不存在' }
+    }
+
     try {
       const response = await requestPluginMarket(
         `/plugins/comments/${commentId}/like`,
@@ -442,6 +736,17 @@ export class PluginMarketAPI {
   public async deleteComment(
     commentId: number
   ): Promise<{ success: boolean; error?: string; authRequired?: boolean }> {
+    if (USE_MOCK_DATA) {
+      for (const list of Object.values(MOCK_COMMENTS)) {
+        const idx = list.findIndex((item) => item.id === commentId)
+        if (idx !== -1) {
+          list.splice(idx, 1)
+          return { success: true }
+        }
+      }
+      return { success: false, error: '评论不存在' }
+    }
+
     try {
       await requestPluginMarket(
         `/plugins/comments/${commentId}`,
@@ -525,6 +830,91 @@ export class PluginMarketAPI {
       return { success: false, error: error.message, authRequired: true }
     }
     return { success: false, error: error instanceof Error ? error.message : fallback }
+  }
+
+  // ━━━ Mock Methods ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  private getMockPluginMarketResult(): PluginMarketResult {
+    const plugins = MOCK_PLUGINS
+    const storefront = this.buildMockStorefront()
+
+    databaseAPI.dbPut('plugin-market-version', String(Date.now()))
+    databaseAPI.dbPut('plugin-market-data', plugins)
+    databaseAPI.dbPut(PLUGIN_MARKET_STOREFRONT_CACHE_KEY, storefront)
+    databaseAPI.dbPut(
+      PLUGIN_MARKET_STOREFRONT_FINGERPRINT_CACHE_KEY,
+      this.getPluginMarketFingerprint(plugins)
+    )
+
+    return { success: true, data: plugins, storefront }
+  }
+
+  private buildMockStorefront(): PluginMarketStorefront {
+    const sections: PluginMarketStorefrontSection[] = [
+      {
+        type: 'banner',
+        key: 'home-banner',
+        items: MOCK_BANNERS.map((b) => ({ image: b.imageUrl, url: b.linkUrl })),
+        height: 200
+      },
+      {
+        type: 'navigation',
+        key: 'category-nav',
+        categories: MOCK_CATEGORIES.map((c) => ({
+          key: String(c.id),
+          title: c.title || '',
+          description: c.description,
+          icon: undefined,
+          showDescription: true,
+          pluginCount: c.plugins?.length || 0
+        }))
+      },
+      {
+        type: 'fixed',
+        key: 'latest-plugins',
+        title: '最新上架',
+        plugins: MOCK_PLUGINS.slice(0, 4)
+      },
+      {
+        type: 'random',
+        key: 'recommended-plugins',
+        title: '编辑推荐',
+        plugins: [...MOCK_PLUGINS].sort(() => Math.random() - 0.5).slice(0, 4)
+      }
+    ]
+
+    const categories: Record<string, PluginMarketStorefrontCategory> = {}
+    const categoryLayouts: Record<string, PluginMarketCategoryLayoutSection[]> = {}
+
+    for (const cat of MOCK_CATEGORIES) {
+      const key = String(cat.id)
+      categories[key] = {
+        key,
+        title: cat.title || '',
+        description: cat.description,
+        plugins: cat.plugins || []
+      }
+      categoryLayouts[key] = [
+        {
+          type: 'list',
+          title: `${cat.title}系列，共${cat.plugins?.length || 0}个工具`,
+          plugins: cat.plugins?.map((p) => p.name) || []
+        }
+      ]
+    }
+
+    return { sections, categories, categoryLayouts }
+  }
+
+  private async getMockLatestPlugin(pluginName: string): Promise<PluginMarketLatestResult> {
+    const plugin = MOCK_PLUGINS.find((p) => p.name === pluginName)
+    if (!plugin) {
+      return { available: false, reason: 'not_found' }
+    }
+    return { available: true, plugin }
+  }
+
+  private getMockRecommendations(limit: number): PluginMarketPlugin[] {
+    return MOCK_PLUGINS.slice(0, limit)
   }
 
   private collectPlugins(marketData: MarketPluginsResponse): PluginMarketPlugin[] {

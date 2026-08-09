@@ -71,24 +71,12 @@ const homeRoutes: MenuRouterItemType[] = [
   {
     path: '/providers',
     name: 'Providers',
-    component: () => import('@/views/ProvidersSetting/ProvidersSetting.vue'),
-    meta: {
-      menu: {
-        label: '提供商',
-        icon: 'i-z-brain'
-      }
-    }
+    component: () => import('@/views/ProvidersSetting/ProvidersSetting.vue')
   },
   {
     path: '/mcpService',
     name: 'McpService',
-    component: () => import('@/views/McpServiceSetting/McpServiceSetting.vue'),
-    meta: {
-      menu: {
-        label: 'MCP 服务',
-        icon: 'i-z-mcp'
-      }
-    }
+    component: () => import('@/views/McpServiceSetting/McpServiceSetting.vue')
   },
   {
     path: '/data',

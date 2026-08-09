@@ -1,0 +1,38 @@
+{
+  "$schema": "node_modules/@ztools-center/ztools-api-types/resource/ztools.schema.json",
+  "name": "pdf-toolkit",
+  "title": "PDF 工具箱",
+  "description": "PDF 查看、合并、旋转工具",
+  "author": "Zing",
+  "version": "1.0.0",
+  "main": "../dist/index.html",
+  "logo": "logo.png",
+  "features": [
+    {
+      "code": "open-pdf",
+      "explain": "打开 PDF 文件",
+      "icon": "logo.png",
+      "cmds": ["打开 PDF", "查看 PDF", "open pdf"]
+    },
+    {
+      "code": "merge-pdf",
+      "explain": "合并 PDF 文件",
+      "icon": "logo.png",
+      "cmds": ["合并 PDF", "merge pdf"]
+    },
+    {
+      "code": "pdf-files",
+      "explain": "打开选中的 PDF 文件",
+      "icon": "logo.png",
+      "cmds": [
+        {
+          "type": "files",
+          "label": "用 PDF 工具箱打开",
+          "fileType": "file",
+          "match": "/\\.pdf$/i",
+          "maxLength": 10
+        }
+      ]
+    }
+  ]
+}

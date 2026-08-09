@@ -1,0 +1,18 @@
+{
+  "$schema": "node_modules/@ztools-center/ztools-api-types/resource/ztools.schema.json",
+  "name": "fullscreen-demo",
+  "title": "全屏演示",
+  "description": "打开后自动全屏的插件示例",
+  "author": "Zing",
+  "version": "1.0.0",
+  "main": "../dist/index.html",
+  "logo": "logo.png",
+  "features": [
+    {
+      "code": "open-fullscreen",
+      "explain": "打开全屏窗口",
+      "icon": "logo.png",
+      "cmds": ["全屏演示", "打开全屏", "fullscreen demo"]
+    }
+  ]
+}

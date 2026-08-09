@@ -1,0 +1,56 @@
+{
+  "$schema": "node_modules/@ztools-center/ztools-api-types/resource/ztools.schema.json",
+  "name": "morse-code",
+  "title": "莫斯密码",
+  "description": "莫斯密码加解密工具",
+  "author": "Zing",
+  "version": "1.0.0",
+  "main": "../dist/index.html",
+  "logo": "logo.png",
+  "features": [
+    {
+      "code": "morse-encode",
+      "explain": "莫斯密码加密",
+      "icon": "logo.png",
+      "cmds": ["莫斯加密", "摩斯加密", "morse encode"]
+    },
+    {
+      "code": "morse-decode",
+      "explain": "莫斯密码解密",
+      "icon": "logo.png",
+      "cmds": ["莫斯解密", "摩斯解密", "morse decode"]
+    },
+    {
+      "code": "morse-tool",
+      "explain": "莫斯密码工具",
+      "icon": "logo.png",
+      "cmds": ["莫斯密码", "摩斯密码", "morse code"]
+    },
+    {
+      "code": "morse-quick-encode",
+      "explain": "快速莫斯加密",
+      "icon": "logo.png",
+      "cmds": [
+        {
+          "type": "over",
+          "label": "莫斯加密",
+          "minLength": 1,
+          "maxLength": 500,
+          "exclude": ["\\.\\.\\.", "\\-\\-\\-", "\\s{2,}"]
+        }
+      ]
+    },
+    {
+      "code": "morse-quick-decode",
+      "explain": "快速莫斯解密",
+      "icon": "logo.png",
+      "cmds": [
+        {
+          "type": "regex",
+          "match": "/^[\\.\\-\\s\\/]+$/",
+          "label": "莫斯解密"
+        }
+      ]
+    }
+  ]
+}
