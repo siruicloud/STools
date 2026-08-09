@@ -28,7 +28,19 @@
         :class="{ active: modelValue === 'view' }"
         @click="$emit('update:modelValue', 'view')"
       >
-        <span class="nav-icon">👁️</span>
+        <span class="nav-icon">
+          <svg
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+          >
+            <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
+            <circle cx="12" cy="12" r="3" />
+          </svg>
+        </span>
         <span>查看 PDF</span>
       </button>
       <button
@@ -36,7 +48,19 @@
         :class="{ active: modelValue === 'merge' }"
         @click="$emit('update:modelValue', 'merge')"
       >
-        <span class="nav-icon">🔗</span>
+        <span class="nav-icon">
+          <svg
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+          >
+            <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71" />
+            <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71" />
+          </svg>
+        </span>
         <span>合并 PDF</span>
       </button>
       <button
@@ -44,7 +68,22 @@
         :class="{ active: modelValue === 'split' }"
         @click="$emit('update:modelValue', 'split')"
       >
-        <span class="nav-icon">✂️</span>
+        <span class="nav-icon">
+          <svg
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+          >
+            <circle cx="6" cy="6" r="3" />
+            <circle cx="6" cy="18" r="3" />
+            <line x1="20" y1="4" x2="8.12" y2="15.88" />
+            <line x1="14.47" y1="14.48" x2="20" y2="20" />
+            <line x1="8.12" y1="8.12" x2="12" y2="12" />
+          </svg>
+        </span>
         <span>拆分 PDF</span>
       </button>
       <button
@@ -52,14 +91,41 @@
         :class="{ active: modelValue === 'convert' }"
         @click="$emit('update:modelValue', 'convert')"
       >
-        <span class="nav-icon">🔄</span>
+        <span class="nav-icon">
+          <svg
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+          >
+            <polyline points="16 3 21 3 21 8" />
+            <line x1="4" y1="20" x2="21" y2="3" />
+            <polyline points="21 16 21 21 16 21" />
+            <line x1="15" y1="15" x2="21" y2="21" />
+            <line x1="4" y1="4" x2="9" y2="9" />
+          </svg>
+        </span>
         <span>格式转换</span>
       </button>
     </nav>
 
     <div class="sidebar-footer">
       <button class="btn-open" @click="$emit('open-file')">
-        <span class="nav-icon">📂</span> 打开文件
+        <span class="nav-icon">
+          <svg
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+          >
+            <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z" />
+          </svg>
+        </span>
+        打开文件
       </button>
     </div>
   </div>
