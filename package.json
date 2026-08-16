@@ -28,7 +28,7 @@
     "build": "pnpm typecheck && pnpm build:setting && electron-vite build",
     "build:setting": "cd internal-plugins/setting && pnpm build",
     "build:unpack": "pnpm build && electron-builder --dir",
-    "build:win": "cross-env ZTOOLS_TARGET_PLATFORM=win32 pnpm build && electron-builder --win --publish never -c.compression=maximum",
+    "build:win": "cross-env ZTOOLS_TARGET_PLATFORM=win32 ELECTRON_BUILDER_COMPRESSION_LEVEL=9 pnpm build && electron-builder --win --publish never -c.compression=maximum",
     "build:mac": "cross-env ZTOOLS_TARGET_PLATFORM=darwin pnpm build && electron-builder --mac --publish never",
     "build:mac:x64": "cross-env ZTOOLS_TARGET_PLATFORM=darwin pnpm build && electron-builder --mac --x64 --publish never",
     "build:mac:arm64": "cross-env ZTOOLS_TARGET_PLATFORM=darwin pnpm build && electron-builder --mac --arm64 --publish never",

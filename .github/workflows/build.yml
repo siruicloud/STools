@@ -82,6 +82,9 @@ jobs:
         run: pnpm install --frozen-lockfile
 
       - name: Build and Package Windows
+        env:
+          # 强制 electron-builder 使用 7z 最高压缩级别（-mx=9），确保安装包充分压缩
+          ELECTRON_BUILDER_COMPRESSION_LEVEL: '9'
         run: pnpm run build:win
 
       # 上传 Windows 产物（安装包/zip/更新元数据）
