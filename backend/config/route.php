@@ -78,6 +78,15 @@ Route::group('/api/market', function () {
     // 删除评论（需认证，仅本人）
     Route::delete('/plugins/comments/{id}', [MarketController::class, 'deleteComment'])
         ->middleware([AuthMiddleware::class]);
+    // 插件版本管理（需认证）
+    Route::get('/plugins/{name}/versions', [MarketController::class, 'pluginVersions']);
+    Route::post('/plugins/{name}/versions', [MarketController::class, 'createPluginVersion'])
+        ->middleware([AuthMiddleware::class]);
+    Route::post('/plugins/{name}/versions/{version}/default', [MarketController::class, 'setDefaultVersion'])
+        ->middleware([AuthMiddleware::class]);
+    Route::delete('/plugins/{name}/versions/{version}', [MarketController::class, 'deletePluginVersion'])
+        ->middleware([AuthMiddleware::class]);
+    Route::post('/plugins/{name}/versions/{version}/download', [MarketController::class, 'trackVersionDownload']);
 });
 
 

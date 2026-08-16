@@ -205,6 +205,106 @@ class MarketController
         return json(['success' => true]);
     }
 
+    /**
+     * GET /api/market/plugins/{name}/versions — 插件版本列表
+     */
+    public function pluginVersions(Request $request, string $name): Response
+    {
+        $plugin = MarketDb::getPluginByName($name);
+        if ($plugin === null) {
+            return json(['error' => '插件不存在'], 404);
+        }
+        $versions = array_map(
+            fn(array $v) => [
+                'id' => (int)$v['id'],
+                'version' => (string)$v['version'],
+                'downloadUrl' => (string)$v['download_url'],
+                'downloadCount' => (int)$v['download_count'],
+                'size' => (int)$v['size'],
+                'changelog' => (string)$v['changelog'],
+                'isDefault' => (int)$v['is_default'] === 1,
+                'createdAt' => (int)$v['created_at'],
+                'updatedAt' => (int)$v['updated_at'],
+            ],
+            MarketDb::getPluginVersions($name)
+        );
+        return json(['items' => $versions]);
+    }
+
+    /**
+     * POST /api/market/plugins/{name}/versions — 上传/新增版本
+     * Body: { version, downloadUrl, size?, changelog?, isDefault? }
+     */
+    public function createPluginVersion(Request $request, string $name): Response
+    {
+        $plugin = MarketDb::getPluginByName($name);
+        if ($plugin === null) {
+            return json(['error' => '插件不存在'], 404);
+        }
+        $body = $this->parseJsonBody($request);
+        $version = trim((string)($body['version'] ?? ''));
+        $downloadUrl = trim((string)($body['downloadUrl'] ?? ''));
+
+        if ($version === '' || $downloadUrl === '') {
+            return json(['error' => 'version 和 downloadUrl 不能为空'], 400);
+        }
+        if (!preg_match('/^\d+\.\d+\.\d+([-+][\w.-]+)?$/', $version)) {
+            return json(['error' => '版本号格式无效，应为 x.y.z'], 400);
+        }
+
+        MarketDb::upsertPluginVersion([
+            'plugin_name' => $name,
+            'version' => $version,
+            'download_url' => $downloadUrl,
+            'size' => (int)($body['size'] ?? 0),
+            'changelog' => (string)($body['changelog'] ?? ''),
+            'is_default' => !empty($body['isDefault']),
+        ]);
+
+        return json(['success' => true]);
+    }
+
+    /**
+     * POST /api/market/plugins/{name}/versions/{version}/default — 设为默认版本
+     */
+    public function setDefaultVersion(Request $request, string $name, string $version): Response
+    {
+        if (MarketDb::getPluginByName($name) === null) {
+            return json(['error' => '插件不存在'], 404);
+        }
+        try {
+            MarketDb::setDefaultPluginVersion($name, $version);
+        } catch (\RuntimeException $e) {
+            return json(['error' => $e->getMessage()], 400);
+        }
+        return json(['success' => true]);
+    }
+
+    /**
+     * DELETE /api/market/plugins/{name}/versions/{version} — 删除版本（默认版本不可删）
+     */
+    public function deletePluginVersion(Request $request, string $name, string $version): Response
+    {
+        try {
+            $deleted = MarketDb::deletePluginVersion($name, $version);
+        } catch (\RuntimeException $e) {
+            return json(['error' => $e->getMessage()], 400);
+        }
+        if (!$deleted) {
+            return json(['error' => '版本不存在'], 404);
+        }
+        return json(['success' => true]);
+    }
+
+    /**
+     * POST /api/market/plugins/{name}/versions/{version}/download — 下载计数 +1
+     */
+    public function trackVersionDownload(Request $request, string $name, string $version): Response
+    {
+        MarketDb::incrementVersionDownload($name, $version);
+        return json(['success' => true]);
+    }
+
     // ━━━ 内部工具 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
     private function limit(string $value): int

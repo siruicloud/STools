@@ -157,6 +157,7 @@ CREATE TABLE IF NOT EXISTS plugins (
   homepage TEXT DEFAULT '',
   size INTEGER DEFAULT 0,
   download_count INTEGER DEFAULT 0,
+  download_url TEXT DEFAULT '',
   updated_at INTEGER DEFAULT 0,
   published_at INTEGER DEFAULT 0,
   category_id INTEGER DEFAULT 0,
@@ -165,6 +166,22 @@ CREATE TABLE IF NOT EXISTS plugins (
   readme TEXT DEFAULT '',
   is_recommended INTEGER DEFAULT 0,
   sort_order INTEGER DEFAULT 0
+);
+
+CREATE TABLE IF NOT EXISTS plugin_versions (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  plugin_id INTEGER NOT NULL,
+  plugin_name TEXT NOT NULL,
+  version TEXT NOT NULL,
+  download_url TEXT NOT NULL DEFAULT '',
+  download_count INTEGER DEFAULT 0,
+  size INTEGER DEFAULT 0,
+  changelog TEXT DEFAULT '',
+  is_default INTEGER DEFAULT 0,
+  created_at INTEGER DEFAULT 0,
+  updated_at INTEGER DEFAULT 0,
+  UNIQUE (plugin_id, version),
+  FOREIGN KEY (plugin_id) REFERENCES plugins(id) ON DELETE CASCADE ON UPDATE CASCADE
 );
 
 CREATE TABLE IF NOT EXISTS comments (
@@ -201,14 +218,62 @@ CREATE TABLE IF NOT EXISTS users (
 CREATE INDEX IF NOT EXISTS idx_plugins_category ON plugins(category_id);
 CREATE INDEX IF NOT EXISTS idx_plugins_recommended ON plugins(is_recommended);
 CREATE INDEX IF NOT EXISTS idx_comments_plugin ON comments(plugin_name);
+CREATE INDEX IF NOT EXISTS idx_plugin_versions_plugin ON plugin_versions(plugin_id);
+CREATE INDEX IF NOT EXISTS idx_plugin_versions_default ON plugin_versions(plugin_id, is_default);
 SQL);
 
         // 兼容旧库：补充新增列（ALTER TABLE 不报错即成功）
-        foreach (['password' => "TEXT DEFAULT ''", 'refresh_token' => "TEXT DEFAULT ''"] as $col => $def) {
+        foreach ([
+            'password' => "TEXT DEFAULT ''",
+            'refresh_token' => "TEXT DEFAULT ''",
+            'download_url' => "TEXT DEFAULT ''",
+        ] as $col => $def) {
             try {
-                $pdo->exec("ALTER TABLE users ADD COLUMN {$col} {$def}");
+                $pdo->exec("ALTER TABLE plugins ADD COLUMN {$col} {$def}");
             } catch (\Throwable) {
                 // 列已存在
+            }
+        }
+        try {
+            $pdo->exec('ALTER TABLE plugin_versions ADD COLUMN plugin_id INTEGER NOT NULL DEFAULT 0');
+            // 回填 plugin_id（从 plugins.name 匹配）
+            $pdo->exec(
+                'UPDATE plugin_versions v JOIN plugins p ON v.plugin_name = p.name SET v.plugin_id = p.id'
+            );
+        } catch (\Throwable) {
+            // 列已存在
+        }
+
+        // 兼容旧库：为 plugin_versions 补充外键约束（MySQL；SQLite 通过 CREATE TABLE 定义）
+        if (self::isMysql()) {
+            $fks = $pdo->query(
+                "SELECT CONSTRAINT_NAME FROM information_schema.TABLE_CONSTRAINTS
+                 WHERE CONSTRAINT_SCHEMA = DATABASE() AND TABLE_NAME = 'plugin_versions' AND CONSTRAINT_TYPE = 'FOREIGN KEY'"
+            )->fetchAll(PDO::FETCH_COLUMN);
+            foreach ($fks as $fk) {
+                try {
+                    $pdo->exec("ALTER TABLE plugin_versions DROP FOREIGN KEY `{$fk}`");
+                } catch (\Throwable) {
+                    // 忽略删除失败
+                }
+            }
+            $hasPluginIdFk = in_array('fk_plugin_versions_plugin', $fks, true)
+                && (int)$pdo->query(
+                    "SELECT COUNT(*) FROM information_schema.KEY_COLUMN_USAGE
+                     WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'plugin_versions'
+                       AND CONSTRAINT_NAME = 'fk_plugin_versions_plugin' AND COLUMN_NAME = 'plugin_id'"
+                )->fetchColumn() > 0;
+            if (!$hasPluginIdFk) {
+                try {
+                    $pdo->exec(
+                        'ALTER TABLE plugin_versions
+                         ADD CONSTRAINT fk_plugin_versions_plugin
+                         FOREIGN KEY (plugin_id) REFERENCES plugins(id)
+                         ON DELETE CASCADE ON UPDATE CASCADE'
+                    );
+                } catch (\Throwable $e) {
+                    error_log('[MarketDb] 添加 plugin_versions 外键失败: ' . $e->getMessage());
+                }
             }
         }
     }
@@ -251,6 +316,157 @@ SQL);
         );
         $stmt->execute();
         return $stmt->fetchAll();
+    }
+
+    // ━━━ 插件版本 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+    /** 插件的全部版本（按创建时间倒序） */
+    public static function getPluginVersions(string $pluginName): array
+    {
+        $stmt = self::connection()->prepare(
+            'SELECT * FROM plugin_versions WHERE plugin_name = ? ORDER BY created_at DESC, id DESC'
+        );
+        $stmt->execute([$pluginName]);
+        return $stmt->fetchAll();
+    }
+
+    /** 添加/更新版本；isDefault=true 时自动清除该插件其他默认标记，并同步 plugins 表快照 */
+    public static function upsertPluginVersion(array $data): void
+    {
+        $pdo = self::connection();
+        $pluginId = self::getPluginIdByName($data['plugin_name']);
+        if ($pluginId === null) {
+            throw new \RuntimeException('插件不存在');
+        }
+        $pdo->beginTransaction();
+        try {
+            $stmt = $pdo->prepare(
+                'SELECT id FROM plugin_versions WHERE plugin_id = ? AND version = ? LIMIT 1'
+            );
+            $stmt->execute([$pluginId, $data['version']]);
+            $existing = $stmt->fetchColumn();
+
+            if ($existing !== false) {
+                $stmt = $pdo->prepare(
+                    'UPDATE plugin_versions SET download_url = ?, download_count = ?, size = ?, changelog = ?, updated_at = ? WHERE id = ?'
+                );
+                $stmt->execute([
+                    $data['download_url'],
+                    $data['download_count'] ?? 0,
+                    $data['size'] ?? 0,
+                    $data['changelog'] ?? '',
+                    time() * 1000,
+                    (int)$existing,
+                ]);
+                $versionId = (int)$existing;
+            } else {
+                $stmt = $pdo->prepare(
+                    'INSERT INTO plugin_versions (plugin_id, plugin_name, version, download_url, download_count, size, changelog, is_default, created_at, updated_at)
+                     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)'
+                );
+                $stmt->execute([
+                    $pluginId,
+                    $data['plugin_name'],
+                    $data['version'],
+                    $data['download_url'],
+                    $data['download_count'] ?? 0,
+                    $data['size'] ?? 0,
+                    $data['changelog'] ?? '',
+                    !empty($data['is_default']) ? 1 : 0,
+                    time() * 1000,
+                    time() * 1000,
+                ]);
+                $versionId = (int)$pdo->lastInsertId();
+            }
+
+            if (!empty($data['is_default'])) {
+                $pdo->prepare('UPDATE plugin_versions SET is_default = 0 WHERE plugin_id = ?')->execute([$pluginId]);
+                $pdo->prepare('UPDATE plugin_versions SET is_default = 1 WHERE id = ?')->execute([$versionId]);
+                // 同步主表快照（客户端接口兼容：version/size/download_count/download_url 取自默认版本）
+                $pdo->prepare(
+                    'UPDATE plugins SET version = ?, size = ?, download_count = ?, download_url = ?, updated_at = ? WHERE id = ?'
+                )->execute([
+                    $data['version'],
+                    $data['size'] ?? 0,
+                    $data['download_count'] ?? 0,
+                    $data['download_url'],
+                    time() * 1000,
+                    $pluginId,
+                ]);
+            }
+
+            $pdo->commit();
+        } catch (\Throwable $e) {
+            $pdo->rollBack();
+            throw $e;
+        }
+    }
+
+    /** 指定某版本为默认版本 */
+    public static function setDefaultPluginVersion(string $pluginName, string $version): void
+    {
+        $stmt = self::connection()->prepare(
+            'SELECT * FROM plugin_versions WHERE plugin_name = ? AND version = ? LIMIT 1'
+        );
+        $stmt->execute([$pluginName, $version]);
+        $row = $stmt->fetch();
+        if ($row === false) {
+            throw new \RuntimeException('版本不存在');
+        }
+        self::upsertPluginVersion([
+            'plugin_name' => $pluginName,
+            'version' => $version,
+            'download_url' => $row['download_url'],
+            'download_count' => (int)$row['download_count'],
+            'size' => (int)$row['size'],
+            'changelog' => (string)$row['changelog'],
+            'is_default' => true,
+        ]);
+    }
+
+    /** 删除非默认版本；默认版本不可删除 */
+    public static function deletePluginVersion(string $pluginName, string $version): bool
+    {
+        $pdo = self::connection();
+        $pluginId = self::getPluginIdByName($pluginName);
+        if ($pluginId === null) {
+            return false;
+        }
+        $stmt = $pdo->prepare('SELECT is_default FROM plugin_versions WHERE plugin_id = ? AND version = ? LIMIT 1');
+        $stmt->execute([$pluginId, $version]);
+        $isDefault = $stmt->fetchColumn();
+        if ($isDefault === false) {
+            return false;
+        }
+        if ((int)$isDefault === 1) {
+            throw new \RuntimeException('默认版本不可删除');
+        }
+        $stmt = $pdo->prepare('DELETE FROM plugin_versions WHERE plugin_id = ? AND version = ?');
+        $stmt->execute([$pluginId, $version]);
+        return $stmt->rowCount() > 0;
+    }
+
+    /** 增加某版本下载计数（同时累加主表 download_count） */
+    public static function incrementVersionDownload(string $pluginName, string $version): void
+    {
+        $pdo = self::connection();
+        $pluginId = self::getPluginIdByName($pluginName);
+        if ($pluginId === null) {
+            return;
+        }
+        $pdo->prepare('UPDATE plugin_versions SET download_count = download_count + 1 WHERE plugin_id = ? AND version = ?')
+            ->execute([$pluginId, $version]);
+        $pdo->prepare('UPDATE plugins SET download_count = download_count + 1 WHERE id = ?')
+            ->execute([$pluginId]);
+    }
+
+    /** 根据插件名获取插件主键 id */
+    public static function getPluginIdByName(string $pluginName): ?int
+    {
+        $stmt = self::connection()->prepare('SELECT id FROM plugins WHERE name = ? LIMIT 1');
+        $stmt->execute([$pluginName]);
+        $id = $stmt->fetchColumn();
+        return $id === false ? null : (int)$id;
     }
 
     // ━━━ 分类 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
@@ -545,6 +761,7 @@ SQL);
             'homepage' => (string)$row['homepage'],
             'size' => (int)$row['size'],
             'downloadCount' => (int)$row['download_count'],
+            'downloadUrl' => (string)($row['download_url'] ?? ''),
             'updatedAt' => (int)$row['updated_at'],
             'publishedAt' => (int)$row['published_at'],
             'categoryId' => (int)$row['category_id'],

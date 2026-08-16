@@ -193,6 +193,27 @@ if (!empty($batch)) {
     $db->prepare($sql)->execute($params);
 }
 
+// ━━━ 插件版本（从 plugins 表迁移默认版本）━━━
+// 幂等：已有默认版本记录的插件跳过
+$allPlugins = $db->query('SELECT id, name, version, size, download_count FROM plugins')->fetchAll(PDO::FETCH_ASSOC);
+$hasDefault = $db->prepare('SELECT 1 FROM plugin_versions WHERE plugin_id = ? AND is_default = 1 LIMIT 1');
+$insertVersion = $db->prepare(
+    'INSERT INTO plugin_versions (plugin_id, plugin_name, version, download_url, download_count, size, changelog, is_default, created_at, updated_at)
+     VALUES (?, ?, ?, ?, ?, ?, ?, 1, ?, ?)'
+);
+foreach ($allPlugins as $p) {
+    $hasDefault->execute([$p['id']]);
+    if ($hasDefault->fetchColumn() !== false) {
+        continue;
+    }
+    $downloadUrl = "https://api.seaman.cc/plugins/{$p['name']}/download/{$p['version']}";
+    $ts = time() * 1000;
+    $insertVersion->execute([
+        $p['id'], $p['name'], $p['version'], $downloadUrl, $p['download_count'], $p['size'],
+        "初始版本 {$p['version']}", $ts, $ts,
+    ]);
+}
+
 // ━━━ 轮播图（image_url 为动态 SVG 相对路径，由 /banners/{name}.svg 生成）━━━
 // banners 为展示数据，无外键依赖，直接重建保证幂等且无重复
 $banners = [

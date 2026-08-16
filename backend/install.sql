@@ -41,14 +41,15 @@ CREATE TABLE IF NOT EXISTS `categories` (
 CREATE TABLE IF NOT EXISTS `plugins` (
   `id`              INT UNSIGNED NOT NULL AUTO_INCREMENT,
   `name`            VARCHAR(100) NOT NULL COMMENT 'plugin unique name',
-  `version`         VARCHAR(30)  NOT NULL COMMENT 'semver',
+  `version`         VARCHAR(30)  NOT NULL COMMENT 'semver (default version snapshot)',
   `title`           VARCHAR(100) NOT NULL DEFAULT '' COMMENT 'display name',
   `description`     TEXT         NOT NULL COMMENT 'description',
   `logo`            VARCHAR(500) NOT NULL DEFAULT '' COMMENT 'logo url or data uri',
   `author`          VARCHAR(100) NOT NULL DEFAULT '',
   `homepage`        VARCHAR(500) NOT NULL DEFAULT '',
-  `size`            BIGINT       NOT NULL DEFAULT 0 COMMENT 'size in bytes',
-  `download_count`  INT UNSIGNED NOT NULL DEFAULT 0 COMMENT 'download count',
+  `size`            BIGINT       NOT NULL DEFAULT 0 COMMENT 'size in bytes (default version)',
+  `download_count`  INT UNSIGNED NOT NULL DEFAULT 0 COMMENT 'total download count',
+  `download_url`    VARCHAR(500) NOT NULL DEFAULT '' COMMENT 'default version download url',
   `updated_at`      BIGINT       NOT NULL DEFAULT 0 COMMENT 'update ts ms',
   `published_at`    BIGINT       NOT NULL DEFAULT 0 COMMENT 'publish ts ms',
   `category_id`     INT UNSIGNED NOT NULL DEFAULT 0,
@@ -62,6 +63,26 @@ CREATE TABLE IF NOT EXISTS `plugins` (
   KEY `idx_plugins_category` (`category_id`),
   KEY `idx_plugins_recommended` (`is_recommended`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='plugins';
+
+-- STEP 4.1: plugin versions (one-to-many, FK to plugins.id)
+CREATE TABLE IF NOT EXISTS `plugin_versions` (
+  `id`              INT UNSIGNED NOT NULL AUTO_INCREMENT,
+  `plugin_id`       INT UNSIGNED NOT NULL,
+  `plugin_name`     VARCHAR(100) NOT NULL DEFAULT '' COMMENT 'denormalized name for display',
+  `version`         VARCHAR(30)  NOT NULL COMMENT 'semver',
+  `download_url`    VARCHAR(500) NOT NULL DEFAULT '' COMMENT 'spk download url',
+  `download_count`  INT UNSIGNED NOT NULL DEFAULT 0 COMMENT 'per-version download count',
+  `size`            BIGINT       NOT NULL DEFAULT 0,
+  `changelog`       TEXT         NOT NULL COMMENT 'release notes',
+  `is_default`      TINYINT(1)   NOT NULL DEFAULT 0,
+  `created_at`      BIGINT       NOT NULL DEFAULT 0,
+  `updated_at`      BIGINT       NOT NULL DEFAULT 0,
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `uk_plugin_versions_plugin_version` (`plugin_id`, `version`),
+  KEY `idx_plugin_versions_default` (`plugin_id`, `is_default`),
+  CONSTRAINT `fk_plugin_versions_plugin` FOREIGN KEY (`plugin_id`)
+    REFERENCES `plugins`(`id`) ON DELETE CASCADE ON UPDATE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='plugin versions';
 
 -- STEP 5: comments
 CREATE TABLE IF NOT EXISTS `comments` (
