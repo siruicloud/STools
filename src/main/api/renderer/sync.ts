@@ -1,4 +1,4 @@
-import { BrowserWindow, ipcMain, shell } from 'electron'
+import { BrowserWindow, ipcMain, net, shell } from 'electron'
 import { readFile } from 'fs/promises'
 import path from 'path'
 import { fileURLToPath } from 'url'
@@ -259,7 +259,7 @@ export class SyncAPI {
 
     ipcMain.handle('sync:get-captcha-config', async (_event, params: { serverUrl: string }) => {
       try {
-        const response = await fetch(
+        const response = await net.fetch(
           `${this.syncServerUrlToHttp(params.serverUrl)}/api/auth/captcha-config`
         )
         const data = await response.json()
@@ -288,7 +288,7 @@ export class SyncAPI {
           // 从 ws:// 转换为 http:// 用于 REST API
           const httpUrl = this.syncServerUrlToHttp(params.serverUrl)
 
-          const response = await fetch(`${httpUrl}/api/auth`, {
+          const response = await net.fetch(`${httpUrl}/api/auth`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
@@ -414,7 +414,7 @@ export class SyncAPI {
         if (!config?.serverUrl || !config.token) {
           return { success: false, error: '未登录' }
         }
-        let response = await fetch(
+        let response = await net.fetch(
           `${this.syncServerUrlToHttp(config.serverUrl)}/api/console/client/stats`,
           {
             headers: { Authorization: `Bearer ${config.token}` }
@@ -424,7 +424,7 @@ export class SyncAPI {
           const refreshed = await this.refreshToken(config)
           if (refreshed) {
             config = refreshed
-            response = await fetch(
+            response = await net.fetch(
               `${this.syncServerUrlToHttp(config.serverUrl)}/api/console/client/stats`,
               {
                 headers: { Authorization: `Bearer ${config.token}` }
@@ -448,7 +448,7 @@ export class SyncAPI {
         if (!config?.serverUrl || !config.token) {
           return { success: false, error: '未登录' }
         }
-        let response = await fetch(
+        let response = await net.fetch(
           `${this.syncServerUrlToHttp(config.serverUrl)}/api/account/profile`,
           {
             headers: { Authorization: `Bearer ${config.token}` }
@@ -458,7 +458,7 @@ export class SyncAPI {
           const refreshed = await this.refreshToken(config)
           if (refreshed) {
             config = refreshed
-            response = await fetch(
+            response = await net.fetch(
               `${this.syncServerUrlToHttp(config.serverUrl)}/api/account/profile`,
               {
                 headers: { Authorization: `Bearer ${config.token}` }
@@ -489,11 +489,14 @@ export class SyncAPI {
           const data = await readFile(filePath)
           const form = new FormData()
           form.append('file', new Blob([new Uint8Array(data)]), path.basename(filePath))
-          return fetch(`${this.syncServerUrlToHttp(activeConfig.serverUrl)}/api/account/avatar`, {
-            method: 'POST',
-            headers: { Authorization: `Bearer ${activeConfig.token}` },
-            body: form
-          })
+          return net.fetch(
+            `${this.syncServerUrlToHttp(activeConfig.serverUrl)}/api/account/avatar`,
+            {
+              method: 'POST',
+              headers: { Authorization: `Bearer ${activeConfig.token}` },
+              body: form
+            }
+          )
         }
         let response = await send(config)
         if (response.status === 401 && config.refreshToken) {
@@ -674,7 +677,7 @@ export class SyncAPI {
     ipcMain.handle('sync:github-init-session', async (_event, params: { serverUrl: string }) => {
       try {
         const httpUrl = this.syncServerUrlToHttp(params.serverUrl)
-        const response = await fetch(`${httpUrl}/api/auth/github/init-session`, {
+        const response = await net.fetch(`${httpUrl}/api/auth/github/init-session`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' }
         })
@@ -712,7 +715,7 @@ export class SyncAPI {
       async (_event, params: { serverUrl: string; sessionId: string }) => {
         try {
           const httpUrl = this.syncServerUrlToHttp(params.serverUrl)
-          const response = await fetch(`${httpUrl}/api/auth/session/${params.sessionId}/status`)
+          const response = await net.fetch(`${httpUrl}/api/auth/session/${params.sessionId}/status`)
 
           const data = await response.json()
           return data
@@ -730,7 +733,7 @@ export class SyncAPI {
         params: { serverUrl: string; token: string; nickname: string }
       ): Promise<{ success: boolean; error?: string; profile?: any }> => {
         try {
-          const response = await fetch(
+          const response = await net.fetch(
             `${this.syncServerUrlToHttp(params.serverUrl)}/api/account/nickname`,
             {
               method: 'PUT',

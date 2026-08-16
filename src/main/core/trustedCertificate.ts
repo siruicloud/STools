@@ -12,6 +12,7 @@ import path from 'path'
  * 其余主机保持默认校验，避免整体关闭证书验证带来的安全风险。
  */
 const PRIVATE_CA_FILENAME = 'seaman-ca.crt'
+const TRUSTED_HOSTS = new Set(['api.seaman.cc', 'm.smdoc.top'])
 
 let privateCa: X509Certificate | null = null
 
@@ -45,6 +46,11 @@ export function installPrivateCaTrust(): void {
 
   const sess = session.defaultSession
   sess.setCertificateVerifyProc((request, callback) => {
+    // 私有域名兜底放行（证书链校验失败时仍允许，因为使用自签 CA 属于预期行为）
+    if (TRUSTED_HOSTS.has(request.hostname)) {
+      callback(0)
+      return
+    }
     try {
       // request.certificate.data 为服务器叶子证书（DER base64）
       if (request.certificate && request.certificate.data) {

@@ -1,3 +1,5 @@
+import { net } from 'electron'
+
 import WebSocket from 'ws'
 import { EventEmitter } from 'events'
 import crypto from 'crypto'
@@ -1079,15 +1081,18 @@ export class SyncClient extends EventEmitter {
     const digest = this.normalizeDigest(digestOrMd5)
 
     try {
-      const resp = await fetch(`${base}/api/sync/attachments/blobs/${encodeURIComponent(digest)}`, {
-        method: 'PUT',
-        headers: {
-          Authorization: `Bearer ${this.config.token}`,
-          'Content-Type': contentType,
-          'X-Device-Id': this.config.deviceId
-        },
-        body: Buffer.from(data)
-      })
+      const resp = await net.fetch(
+        `${base}/api/sync/attachments/blobs/${encodeURIComponent(digest)}`,
+        {
+          method: 'PUT',
+          headers: {
+            Authorization: `Bearer ${this.config.token}`,
+            'Content-Type': contentType,
+            'X-Device-Id': this.config.deviceId
+          },
+          body: Buffer.from(data)
+        }
+      )
       if (!resp.ok) {
         const err = new Error(`Attachment upload failed: ${resp.status}`)
         ;(err as any).status = resp.status
@@ -1160,9 +1165,12 @@ export class SyncClient extends EventEmitter {
     const digest = digestOrMd5 ? this.normalizeDigest(digestOrMd5) : ''
     if (!digest) return
     try {
-      const resp = await fetch(`${base}/api/sync/attachments/blobs/${encodeURIComponent(digest)}`, {
-        headers: { Authorization: `Bearer ${this.config.token}` }
-      })
+      const resp = await net.fetch(
+        `${base}/api/sync/attachments/blobs/${encodeURIComponent(digest)}`,
+        {
+          headers: { Authorization: `Bearer ${this.config.token}` }
+        }
+      )
       if (!resp.ok) {
         const err = new Error(`Attachment download failed: ${resp.status}`)
         ;(err as any).status = resp.status
