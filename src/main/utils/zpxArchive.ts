@@ -1,6 +1,5 @@
 /** ZPX（gzip/brotli 压缩的 ASAR）读写与安装准备工具。 */
 import * as asar from '@electron/asar'
-import JavaScriptObfuscator from 'javascript-obfuscator'
 import { minimatch } from 'minimatch'
 import {
   constants as zlibConstants,
@@ -10,6 +9,7 @@ import {
 } from 'node:zlib'
 import path from 'node:path'
 import os from 'node:os'
+import { createRequire } from 'node:module'
 import { pipeline } from 'node:stream/promises'
 import { physicalFs } from './physicalFs.js'
 
@@ -237,10 +237,31 @@ export async function prepareZpxAsar(zpxPath: string, workDir: string): Promise<
 /**
  * 简单混淆打包目录中的 JS 源码。
  * 跳过 preload.js（保持行为稳定）和 node_modules（依赖体积大且常被共享）。
+ * javascript-obfuscator 是 devDependency（构建期工具），生产环境缺失时降级为不混淆。
  * @param sourceDir 插件源目录
  * @returns 混淆处理完成后结束的 Promise
  */
 async function obfuscateDir(sourceDir: string): Promise<void> {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  let obfuscateFn:
+    | ((code: string, opts?: Record<string, unknown>) => { getObfuscatedCode: () => string })
+    | null = null
+  try {
+    const require = createRequire(import.meta.url)
+    // eslint-disable-next-line @typescript-eslint/no-var-requires
+    const mod = require('javascript-obfuscator')
+    const instance = mod && mod.default ? mod.default : mod
+    obfuscateFn =
+      typeof instance.obfuscate === 'function' ? instance.obfuscate.bind(instance) : null
+  } catch {
+    console.warn('[ZPX] javascript-obfuscator 未安装，跳过混淆（开发环境才执行混淆）')
+    return
+  }
+  if (!obfuscateFn) {
+    console.warn('[ZPX] javascript-obfuscator 加载失败，跳过混淆')
+    return
+  }
+
   const stack = [sourceDir]
   while (stack.length > 0) {
     const dir = stack.pop()!
@@ -256,7 +277,7 @@ async function obfuscateDir(sourceDir: string): Promise<void> {
       if (entry.name === 'preload.js') continue
       try {
         const source = await fs.readFile(fullPath, 'utf-8')
-        const result = JavaScriptObfuscator.obfuscate(source, {
+        const result = obfuscateFn(source, {
           compact: true,
           controlFlowFlattening: false,
           deadCodeInjection: false,
