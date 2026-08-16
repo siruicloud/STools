@@ -287,7 +287,7 @@ function createZBrowserClient() {
 }
 
 window.ztools = {
-  getAppName: () => 'ZTools',
+  getAppName: () => 'seaman',
   // 获取拖放文件的路径（Electron webUtils）
   getPathForFile: (file) => electron.webUtils.getPathForFile(file),
   // 平台检测

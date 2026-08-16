@@ -7,8 +7,9 @@ import {
 import type { HttpRequestOptions, HttpResponse } from '../../utils/httpRequest'
 import { httpRequest } from '../../utils/httpRequest.js'
 
-export const DEFAULT_PLUGIN_MARKET_API_BASE = 'https://z-tools.top/api/market'
-export const DEFAULT_SYNC_SERVER_URL = 'wss://z-tools.top'
+// 本地自建后端地址；发布生产前必须改回 https://z-tools.top/api/market
+export const DEFAULT_PLUGIN_MARKET_API_BASE = 'https://api.seaman.cc/api/market'
+export const DEFAULT_SYNC_SERVER_URL = 'https://api.seaman.cc'
 
 export class PluginMarketAuthRequiredError extends Error {
   constructor(message = '需要登录后操作') {

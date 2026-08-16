@@ -1,7 +1,7 @@
 import lmdbInstance from '../lmdb/lmdbInstance'
 import type { SyncConfig } from '../sync/types'
 
-const ONLINE_SYNC_SERVER_URL = 'wss://z-tools.top'
+const ONLINE_SYNC_SERVER_URL = 'https://api.seaman.cc'
 const USER_PROFILE_CACHE_PREFIX = 'ZTOOLS/account-profile-cache:'
 
 export interface UserInfo {

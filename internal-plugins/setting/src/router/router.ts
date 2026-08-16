@@ -25,6 +25,17 @@ const homeRoutes: MenuRouterItemType[] = [
     redirect: '/generalSetting'
   },
   {
+    path: '/market',
+    name: 'Market',
+    component: () => import('@/views/PluginMarketSetting/PluginMarketSetting.vue'),
+    meta: {
+      menu: {
+        label: '插件市场',
+        icon: 'i-z-store'
+      }
+    }
+  },
+  {
     path: '/generalSetting',
     name: 'GeneralSetting',
     component: () => import('@/views/GeneralSetting/GeneralSetting.vue'),
@@ -54,17 +65,6 @@ const homeRoutes: MenuRouterItemType[] = [
       menu: {
         label: '已安装插件',
         icon: 'i-z-plugin'
-      }
-    }
-  },
-  {
-    path: '/market',
-    name: 'Market',
-    component: () => import('@/views/PluginMarketSetting/PluginMarketSetting.vue'),
-    meta: {
-      menu: {
-        label: '插件市场',
-        icon: 'i-z-store'
       }
     }
   },
@@ -125,24 +125,12 @@ const homeRoutes: MenuRouterItemType[] = [
   {
     path: '/debug',
     name: 'Debug',
-    component: () => import('@/views/DebugSetting/DebugSetting.vue'),
-    meta: {
-      menu: {
-        label: '调试日志',
-        icon: 'i-z-terminal'
-      }
-    }
+    component: () => import('@/views/DebugSetting/DebugSetting.vue')
   },
   {
     path: '/httpService',
     name: 'HttpService',
-    component: () => import('@/views/HttpServiceSetting/HttpServiceSetting.vue'),
-    meta: {
-      menu: {
-        label: 'HTTP 服务',
-        icon: 'i-z-monitor'
-      }
-    }
+    component: () => import('@/views/HttpServiceSetting/HttpServiceSetting.vue')
   },
   {
     path: '/about',

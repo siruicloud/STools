@@ -3,7 +3,7 @@ import { onActivated, onMounted, onUnmounted, ref, computed } from 'vue'
 import { useToast, DetailPanel } from '@/components'
 
 const { success, error, warning, confirm } = useToast()
-const ONLINE_SYNC_SERVER_URL = 'wss://z-tools.top'
+const ONLINE_SYNC_SERVER_URL = 'https://api.seaman.cc'
 
 // 同步配置
 const syncEnabled = ref(false)
@@ -478,7 +478,7 @@ async function handleSyncToggle(): Promise<void> {
     }
 
     if (syncEnabled.value && !currentToken) {
-      warning('请先通过左下角登录 ZTools 账号')
+      warning('请先通过左下角登录 seaman 账号')
       syncEnabled.value = false
       return
     }

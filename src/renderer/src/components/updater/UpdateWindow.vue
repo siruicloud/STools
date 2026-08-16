@@ -5,7 +5,7 @@
       <img :src="logo" class="header-icon" draggable="false" />
       <div class="header-info">
         <div class="title">发现新版本 {{ version }}</div>
-        <div class="subtitle">ZTools</div>
+        <div class="subtitle">seaman</div>
       </div>
     </div>
 
@@ -56,7 +56,7 @@
               >
                 <span aria-hidden="true">?</span>
                 <span id="quark-source-tooltip" class="source-tooltip" role="tooltip">
-                  通过夸克网盘下载并转存时，ZTools
+                  通过夸克网盘下载并转存时，seaman
                   可能获得少量渠道收益，用于分担服务器和持续维护成本。感谢你的支持。
                 </span>
               </button>

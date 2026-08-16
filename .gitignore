@@ -17,3 +17,6 @@ out
 .pnpm-store/*
 _*
 /.sanshu-memory
+backend.zip
+.playwright-mcp/
+/.omo

@@ -36,7 +36,7 @@ interface AccountProfileCache {
   updatedAt: number
 }
 
-const displayName = computed(() => nickname.value || username.value || 'ZTools 用户')
+const displayName = computed(() => nickname.value || username.value || 'seaman 用户')
 
 /**
  * 切换右侧设置页面。
@@ -232,46 +232,6 @@ async function submitLogin(
     loggingIn.value = false
   }
 }
-
-async function handleGithubLoginSuccess(data: {
-  token: string
-  refreshToken: string
-  username: string
-  isNew: boolean
-}): Promise<void> {
-  try {
-    // 保存配置（与账号密码登录相同的逻辑）
-    const configResult = await window.ztools.internal.syncGetConfig()
-    const currentConfig = configResult.success ? configResult.config : null
-
-    await window.ztools.internal.syncSaveConfig({
-      enabled: Boolean(currentConfig?.enabled),
-      serverUrl: ONLINE_SYNC_SERVER_URL,
-      token: data.token,
-      refreshToken: data.refreshToken,
-      syncInterval: currentConfig?.syncInterval || 30,
-      username: data.username
-    })
-
-    // 关闭登录对话框
-    loginVisible.value = false
-    loginUsername.value = data.username
-
-    // 显示成功提示
-    success(`GitHub 登录成功！欢迎${data.isNew ? '注册' : '回来'}，${data.username}`)
-
-    // 触发账号变更事件
-    notifyAccountChanged()
-
-    await promptDefaultDataImportAfterLogin({ confirm, success, error })
-
-    // 加载账号信息
-    await loadAccount()
-  } catch (err: any) {
-    console.error('[GitHub Login] 保存配置失败:', err)
-    error(err?.message || 'GitHub 登录失败')
-  }
-}
 </script>
 
 <template>
@@ -305,7 +265,7 @@ async function handleGithubLoginSuccess(data: {
           <div class="i-z-cloud" />
         </div>
         <div class="account-info">
-          <strong>{{ loggedIn ? displayName : '注册/登录 ZTools' }}</strong>
+          <strong>{{ loggedIn ? displayName : '注册/登录 seaman' }}</strong>
           <span>{{ loggedIn ? '查看个人中心' : '同步数据与评论互动' }}</span>
         </div>
       </button>
@@ -326,7 +286,6 @@ async function handleGithubLoginSuccess(data: {
       :username="loginUsername"
       :loading="loggingIn"
       @submit="submitLogin"
-      @github-login-success="handleGithubLoginSuccess"
     />
   </div>
 </template>

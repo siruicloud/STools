@@ -23,6 +23,7 @@ import floatingBallManager from './core/floatingBallManager'
 import httpServer from './core/httpServer'
 import mcpServer from './core/mcpServer'
 import { registerIconProtocolForSession, registerIconScheme } from './core/iconProtocol'
+import { installPrivateCaTrust } from './core/trustedCertificate'
 import { getLogsPath } from './core/appData/appDataPaths'
 import { loadInternalPlugins } from './core/internalPluginLoader'
 import pluginManager from './managers/pluginManager'
@@ -137,6 +138,9 @@ app.whenReady().then(async () => {
 
   // 注册自定义图标协议到默认 session (ztools-icon://)
   registerIconProtocolForSession(session.defaultSession)
+
+  // 信任私有自签 CA（api.seaman.cc 使用 seaman 私有 CA 签发的长期证书）
+  installPrivateCaTrust()
 
   // ✅ 首先加载内置插件
   loadInternalPlugins()

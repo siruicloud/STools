@@ -8,8 +8,8 @@ import {
 } from './pluginMarketConfig'
 
 // ━━━ Mock Data Toggle ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-/** 设置为 true 启用本地模拟数据（用于开发/测试插件市场流程） */
-const USE_MOCK_DATA = true
+/** 设置为 true 启用本地模拟数据（用于开发/测试插件市场流程）；false 走真实后端请求 */
+const USE_MOCK_DATA = false
 
 const MOCK_PLUGINS: PluginMarketPlugin[] = [
   {

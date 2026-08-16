@@ -1,4 +1,4 @@
-export const ONLINE_SYNC_SERVER_URL = 'wss://z-tools.top'
+export const ONLINE_SYNC_SERVER_URL = 'https://api.seaman.cc'
 export const ACCOUNT_CHANGED_EVENT = 'ztools-account-changed'
 
 export interface ZToolsLoginPayload {

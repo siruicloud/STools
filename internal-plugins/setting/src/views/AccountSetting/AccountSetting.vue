@@ -30,7 +30,7 @@ const stats = ref<{
   monthlyTraffic: number
 } | null>(null)
 
-const displayName = computed(() => nickname.value || username.value || 'ZTools 用户')
+const displayName = computed(() => nickname.value || username.value || 'seaman 用户')
 
 onMounted(() => {
   void loadAccount()
@@ -335,7 +335,7 @@ function formatBytes(value?: number): string {
         </button>
         <div class="profile-heading">
           <strong>{{ displayName }}</strong>
-          <span>ZTools 云同步账号</span>
+          <span>seaman 云同步账号</span>
         </div>
       </section>
 

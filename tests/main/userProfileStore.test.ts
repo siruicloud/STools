@@ -44,7 +44,7 @@ describe('user profile store', () => {
         data: {
           token: 'secret',
           username: 'zing',
-          serverUrl: 'wss://z-tools.top'
+          serverUrl: 'https://api.seaman.cc'
         }
       })
       .mockReturnValueOnce({
@@ -69,7 +69,7 @@ describe('user profile store', () => {
         data: {
           token: 'secret',
           username: 'new-user',
-          serverUrl: 'wss://z-tools.top'
+          serverUrl: 'https://api.seaman.cc'
         }
       })
       .mockReturnValueOnce(null)

@@ -31,7 +31,7 @@ describe('requestPluginMarket', () => {
       _id: 'SYNC/config',
       _rev: '1-test',
       data: {
-        serverUrl: 'wss://z-tools.top',
+        serverUrl: 'https://api.seaman.cc',
         token: 'expired-token',
         refreshToken: 'expired-refresh-token'
       }
@@ -73,7 +73,7 @@ describe('requestPluginMarket', () => {
       _id: 'SYNC/config',
       _rev: '1-test',
       data: {
-        serverUrl: 'wss://z-tools.top',
+        serverUrl: 'https://api.seaman.cc',
         token: 'expired-token',
         refreshToken: 'expired-refresh-token'
       }
