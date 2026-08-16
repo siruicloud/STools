@@ -40,7 +40,7 @@ if (platform.isMacOS) {
 
 app.on('second-instance', (_event, argv) => {
   // Windows: 检查命令行参数中是否有 .zpx 文件路径
-  const zpxPath = argv.find((arg) => arg.endsWith('.zpx'))
+  const zpxPath = argv.find((arg) => arg.endsWith('.spk'))
   if (zpxPath) {
     console.log('[Main] 第二实例传入 ZPX 文件:', zpxPath)
     if (applicationInitialized) {
@@ -59,7 +59,7 @@ app.on('second-instance', (_event, argv) => {
 // macOS: 监听文件打开事件（双击 .zpx 文件或拖拽到 Dock 图标）
 app.on('open-file', (event, filePath) => {
   event.preventDefault()
-  if (!filePath.endsWith('.zpx')) return
+  if (!filePath.endsWith('.spk')) return
 
   console.log('[Main] 收到 open-file 事件:', filePath)
 
@@ -198,7 +198,7 @@ app.whenReady().then(async () => {
 
   // 处理文件关联打开：macOS pending 文件 / Windows 命令行参数
   const zpxFromArgs =
-    pendingZpxFile || process.argv.find((arg) => arg.endsWith('.zpx') && !arg.startsWith('-'))
+    pendingZpxFile || process.argv.find((arg) => arg.endsWith('.spk') && !arg.startsWith('-'))
   if (zpxFromArgs) {
     pendingZpxFile = null
     // 等待窗口和插件系统完全初始化后再打开

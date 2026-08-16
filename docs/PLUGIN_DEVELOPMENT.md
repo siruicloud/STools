@@ -786,11 +786,11 @@ describe('Search Feature', () => {
 cd custom-plugins/your-plugin
 pnpm build
 
-# 2. 打包为 .zpx 文件
+# 2. 打包为 .spk 文件
 # 使用构建脚本
 ../../scripts/build-plugin.sh your-plugin
 
-# 输出：your-plugin.zpx
+# 输出：your-plugin.spk
 ```
 
 ---
@@ -813,8 +813,8 @@ cp -r public/* /tmp/zpx-build/
 # 5. 打包为 asar
 npx asar pack /tmp/zpx-build plugin.asar
 
-# 6. 压缩为 .zpx（gzip）
-gzip -c plugin.asar > your-plugin.zpx
+# 6. 压缩为 .spk（gzip）
+gzip -c plugin.asar > your-plugin.spk
 
 # 7. 清理
 rm -rf /tmp/zpx-build plugin.asar
@@ -838,7 +838,7 @@ pnpm build
 ../../scripts/build-plugin.sh your-plugin
 
 # 5. 测试安装
-# 在 STools 中手动安装 your-plugin.zpx
+# 在 STools 中手动安装 your-plugin.spk
 
 # 6. 提交代码
 git add .
@@ -852,7 +852,7 @@ git push origin main --tags
 
 # 9. 创建 GitHub Release
 gh release create plugin-v1.0.1 \
-  your-plugin.zpx \
+  your-plugin.spk \
   --title "Plugin v1.0.1" \
   --notes "更新内容：..."
 ```

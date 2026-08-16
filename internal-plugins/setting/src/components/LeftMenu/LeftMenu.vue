@@ -222,7 +222,11 @@ async function submitLogin(
     controls?.resolve()
     loginVisible.value = false
     loginUsername.value = payload.username
-    success(result.isNew ? '账号创建成功' : '登录成功')
+    if (result.isNew) {
+      success(`欢迎加入 seaman，${payload.username}！账号已创建`)
+    } else {
+      success('登录成功')
+    }
     await promptDefaultDataImportAfterLogin({ confirm, success, error })
     await loadAccount()
   } catch (err: any) {

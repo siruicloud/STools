@@ -1,5 +1,6 @@
 /** ZPX（gzip/brotli 压缩的 ASAR）读写与安装准备工具。 */
 import * as asar from '@electron/asar'
+import JavaScriptObfuscator from 'javascript-obfuscator'
 import { minimatch } from 'minimatch'
 import {
   constants as zlibConstants,
@@ -234,17 +235,64 @@ export async function prepareZpxAsar(zpxPath: string, workDir: string): Promise<
 }
 
 /**
- * 将插件目录打包为 brotli 压缩的 ZPX。
+ * 简单混淆打包目录中的 JS 源码。
+ * 跳过 preload.js（保持行为稳定）和 node_modules（依赖体积大且常被共享）。
  * @param sourceDir 插件源目录
- * @param outputPath ZPX 输出路径
+ * @returns 混淆处理完成后结束的 Promise
+ */
+async function obfuscateDir(sourceDir: string): Promise<void> {
+  const stack = [sourceDir]
+  while (stack.length > 0) {
+    const dir = stack.pop()!
+    const entries = await fs.readdir(dir, { withFileTypes: true })
+    for (const entry of entries) {
+      const fullPath = path.join(dir, entry.name)
+      if (entry.isDirectory()) {
+        if (entry.name === 'node_modules') continue
+        stack.push(fullPath)
+        continue
+      }
+      if (!entry.isFile() || !entry.name.endsWith('.js')) continue
+      if (entry.name === 'preload.js') continue
+      try {
+        const source = await fs.readFile(fullPath, 'utf-8')
+        const result = JavaScriptObfuscator.obfuscate(source, {
+          compact: true,
+          controlFlowFlattening: false,
+          deadCodeInjection: false,
+          stringArray: true,
+          stringArrayThreshold: 0.3,
+          identifierNamesGenerator: 'hexadecimal',
+          renameGlobals: false,
+          simplify: true,
+          transformObjectKeys: false,
+          unicodeEscapeSequence: false
+        })
+        await fs.writeFile(fullPath, result.getObfuscatedCode(), 'utf-8')
+      } catch (error) {
+        console.warn('[ZPX] 混淆失败，保留原文件:', fullPath, error)
+      }
+    }
+  }
+}
+
+/**
+ * 将插件目录打包为 brotli 压缩的 SPK（插件包）。
+ * 打包前会在临时副本中对 JS 做简单混淆（preload.js 除外），不污染源目录。
+ * @param sourceDir 插件源目录
+ * @param outputPath SPK 输出路径
  * @returns 打包完成后结束的 Promise
  */
 export async function packZpx(sourceDir: string, outputPath: string): Promise<void> {
   const tempAsarPath = getTempPath('.asar')
+  const tempWorkDir = getTempPath('')
   try {
     console.log('[ZPX] 打包目录:', sourceDir, '→', outputPath)
+    // 复制到临时目录，在副本上混淆，避免修改插件源项目。
+    await fs.cp(sourceDir, tempWorkDir, { recursive: true, errorOnExist: true })
+    await obfuscateDir(tempWorkDir)
     // 先生成标准 ASAR，再对整个归档执行 brotli 压缩。
-    await asar.createPackage(sourceDir, tempAsarPath)
+    await asar.createPackage(tempWorkDir, tempAsarPath)
     await pipeline(
       physicalFs.createReadStream(tempAsarPath),
       createBrotliCompress({
@@ -254,6 +302,7 @@ export async function packZpx(sourceDir: string, outputPath: string): Promise<vo
     )
     console.log('[ZPX] 打包完成:', outputPath)
   } finally {
+    await fs.rm(tempWorkDir, { recursive: true, force: true })
     await cleanupTemp(tempAsarPath)
   }
 }

@@ -122,7 +122,7 @@
 | `files`  | `{ type: 'files', label?, fileType?, extensions?, match?, minLength?, maxLength? }` | 匹配粘贴的文件           |
 | `window` | `{ type: 'window', label?, match: { app?, title?, className? } }`                   | 匹配当前活动窗口         |
 
-**files 类型示例**（安装插件：仅接受 `.zpx`/`.zip` 文件）：
+**files 类型示例**（安装插件：仅接受 `.spk`/`.zip` 文件）：
 
 ```json
 {

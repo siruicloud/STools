@@ -102,3 +102,39 @@ describe('prepareZpxAsar', () => {
     })
   })
 })
+
+describe('packZpx obfuscation', () => {
+  it('obfuscates JS source but keeps preload.js readable and source dir untouched', async () => {
+    const { sourceDir, zpxPath } = await createFixture({
+      files: {
+        'index.js': 'function greet(name) { return "Hello " + name } console.log(greet("world"))',
+        'preload.js': 'window.secret = "keep-me-readable"',
+        'node_modules/dep.js': 'module.exports = "dep"'
+      }
+    })
+
+    const { materializeZpxAsar, listAsarFiles, readFileFromAsar } =
+      await import('../../src/main/utils/zpxArchive')
+    const asarPath = path.join(path.dirname(zpxPath), 'packed.asar')
+    await materializeZpxAsar(zpxPath, asarPath)
+    tempDirs.push(path.dirname(zpxPath))
+
+    const files = listAsarFiles(asarPath)
+    expect(files).toContain('index.js')
+    expect(files).toContain('preload.js')
+
+    const packedIndex = readFileFromAsar(asarPath, 'index.js').toString('utf-8')
+    const packedPreload = readFileFromAsar(asarPath, 'preload.js').toString('utf-8')
+
+    // 普通 JS 被混淆（出现十六进制混淆标识、变量名被改写）
+    expect(packedIndex).toContain('_0x')
+    expect(packedIndex).not.toContain('Hello " + name')
+    expect(packedIndex.length).toBeGreaterThan(0)
+    // preload.js 保持明文
+    expect(packedPreload).toContain('keep-me-readable')
+    // 源目录未被污染
+    await expect(fs.readFile(path.join(sourceDir, 'index.js'), 'utf8')).resolves.toContain(
+      'function greet'
+    )
+  })
+})

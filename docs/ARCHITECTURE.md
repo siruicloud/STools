@@ -31,7 +31,7 @@
 插件仓库（custom-plugins/）
 ├── 独立开发环境（Vite + Vue 3）✅
 ├── 独立依赖管理（package.json）✅
-└── 独立构建流程（.zpx 打包）✅
+└── 独立构建流程（.spk 打包）✅
 
 同步策略
 ├── 定期同步官方更新（每周）✅
@@ -231,7 +231,7 @@ custom-plugins/
 ```bash
 scripts/
 ├── dev-plugin.sh       # 启动插件开发服务器
-├── build-plugin.sh     # 构建插件为 .zpx 文件
+├── build-plugin.sh     # 构建插件为 .spk 文件
 └── sync-upstream.sh    # 同步官方更新
 ```
 
@@ -422,11 +422,11 @@ await window.ztools.zbrowserLaunch({ url: 'https://example.com' })
 #### 构建插件
 
 ```bash
-# 构建并打包为 .zpx 文件
+# 构建并打包为 .spk 文件
 ./scripts/build-plugin.sh your-product-enterprise
 
 # 输出：
-# your-product-enterprise.zpx
+# your-product-enterprise.spk
 ```
 
 ---
@@ -438,7 +438,7 @@ await window.ztools.zbrowserLaunch({ url: 'https://example.com' })
 # 1. 打开 STools
 # 2. 输入："已安装插件"
 # 3. 点击"安装本地插件"
-# 4. 选择 your-product-enterprise.zpx 文件
+# 4. 选择 your-product-enterprise.spk 文件
 
 # 方法 2：自动安装（开发环境）
 # 修改 plugin.json，添加：
@@ -474,7 +474,7 @@ git push origin main --tags
 
 # 5. 创建 GitHub Release
 gh release create plugin-v1.0.1 \
-  your-product-enterprise.zpx \
+  your-product-enterprise.spk \
   --title "Plugin v1.0.1" \
   --notes "更新内容..."
 ```

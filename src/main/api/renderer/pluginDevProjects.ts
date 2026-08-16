@@ -937,8 +937,8 @@ export class PluginDevProjectsAPI {
 
       const result = await dialog.showSaveDialog(this.deps.mainWindow!, {
         title: '保存插件包',
-        defaultPath: `${projectName}-v${resolvedVersion}.zpx`,
-        filters: [{ name: '插件包', extensions: ['zpx'] }]
+        defaultPath: `${projectName}-v${resolvedVersion}.spk`,
+        filters: [{ name: '插件包', extensions: ['spk'] }]
       })
 
       if (result.canceled || !result.filePath) return { success: false, error: '已取消' }

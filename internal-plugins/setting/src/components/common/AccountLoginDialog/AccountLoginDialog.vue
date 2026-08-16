@@ -32,6 +32,10 @@
           placeholder="输入密码"
         />
       </label>
+      <div v-if="passwordStrength.label" class="password-strength" aria-live="polite">
+        <span class="strength-bar" :class="`strength-${passwordStrength.level}`"></span>
+        <span class="strength-label">{{ passwordStrength.label }}</span>
+      </div>
     </form>
     <AliyunCaptcha ref="captchaRef" />
 
@@ -45,7 +49,7 @@
 </template>
 
 <script setup lang="ts">
-import { reactive, ref, watch } from 'vue'
+import { computed, reactive, ref, watch } from 'vue'
 import { BaseDialog } from '../BaseDialog'
 import AliyunCaptcha from './AliyunCaptcha.vue'
 
@@ -77,6 +81,19 @@ const captchaRef = ref<InstanceType<typeof AliyunCaptcha> | null>(null)
 const form = reactive({
   username: '',
   password: ''
+})
+
+const passwordStrength = computed(() => {
+  const pwd = form.password
+  if (!pwd) return { level: 0, label: '' }
+  let score = 0
+  if (pwd.length >= 8) score++
+  if (/[A-Z]/.test(pwd) && /[a-z]/.test(pwd)) score++
+  if (/\d/.test(pwd)) score++
+  if (/[^A-Za-z0-9]/.test(pwd)) score++
+  if (score <= 1) return { level: 1, label: '密码强度：弱' }
+  if (score === 2) return { level: 2, label: '密码强度：中' }
+  return { level: 3, label: '密码强度：强' }
 })
 
 watch(
@@ -138,6 +155,55 @@ const handleCancel = (): void => {
 .login-form {
   display: grid;
   gap: 16px;
+}
+
+.password-strength {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: -8px;
+}
+
+.strength-bar {
+  width: 48px;
+  height: 4px;
+  border-radius: 2px;
+  background: var(--divider-color, rgba(142, 167, 174, 0.22));
+  position: relative;
+  overflow: hidden;
+}
+
+.strength-bar::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 0;
+  border-radius: 2px;
+  transition:
+    width 0.2s ease,
+    background-color 0.2s ease;
+}
+
+.strength-1::after {
+  width: 33%;
+  background: #d03050;
+}
+
+.strength-2::after {
+  width: 66%;
+  background: #d89614;
+}
+
+.strength-3::after {
+  width: 100%;
+  background: #10b981;
+}
+
+.strength-label {
+  font-size: 12px;
+  color: var(--text-secondary);
 }
 
 .login-logo {

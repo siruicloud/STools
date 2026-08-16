@@ -1,4 +1,4 @@
-import { app, session } from 'electron'
+import { app, session, Session } from 'electron'
 import { X509Certificate } from 'crypto'
 import fs from 'fs'
 import path from 'path'
@@ -7,8 +7,8 @@ import path from 'path'
  * 信任私有自签 CA（seaman Private CA）。
  *
  * 私有部署的 api.seaman.cc 使用自签 CA 签发的长期证书，
- * Electron net.request 默认走系统信任链会拒绝该证书。
- * 此处通过 setCertificateVerifyProc 仅放行由 seaman CA 签发的服务器证书，
+ * Electron 默认走系统信任链会拒绝该证书。
+ * 通过 setCertificateVerifyProc 仅放行由 seaman CA 签发的服务器证书，
  * 其余主机保持默认校验，避免整体关闭证书验证带来的安全风险。
  */
 const PRIVATE_CA_FILENAME = 'seaman-ca.crt'
@@ -39,12 +39,8 @@ function loadPrivateCa(): X509Certificate | null {
   }
 }
 
-/** 安装证书信任处理器（在 app ready 后调用一次） */
-export function installPrivateCaTrust(): void {
-  const ca = loadPrivateCa()
-  if (!ca) return
-
-  const sess = session.defaultSession
+/** 为指定 session 安装证书信任处理器 */
+function applyTrustToSession(sess: Session, ca: X509Certificate): void {
   sess.setCertificateVerifyProc((request, callback) => {
     // 私有域名兜底放行（证书链校验失败时仍允许，因为使用自签 CA 属于预期行为）
     if (TRUSTED_HOSTS.has(request.hostname)) {
@@ -67,6 +63,19 @@ export function installPrivateCaTrust(): void {
     }
     callback(-3)
   })
+}
 
-  console.log('[TrustedCert] 私有 CA 信任已安装')
+/** 安装证书信任处理器（在 app ready 后调用一次） */
+export function installPrivateCaTrust(): void {
+  const ca = loadPrivateCa()
+  if (!ca) return
+
+  applyTrustToSession(session.defaultSession, ca)
+
+  // 插件使用独立 partition session（如 persist:setting），新 session 创建时也要应用。
+  app.on('session-created', (sess) => {
+    applyTrustToSession(sess, ca)
+  })
+
+  console.log('[TrustedCert] 私有 CA 信任已安装（含插件 session）')
 }

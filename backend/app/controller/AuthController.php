@@ -109,15 +109,92 @@ class AuthController
         }
         return json([
             'success' => true,
-            'profile' => [
-                'uid' => (string)$user['uid'],
-                'nickname' => (string)$user['nickname'],
-                'avatarUrl' => (string)($user['avatar_url'] ?? ''),
-            ],
+            'profile' => $this->formatProfile($user, $request),
+        ]);
+    }
+
+    /**
+     * PUT /api/account/nickname — 更新昵称（Bearer token）
+     */
+    public function updateNickname(Request $request): Response
+    {
+        $user = $this->authUser($request);
+        if ($user === null) {
+            return json(['error' => '未登录'], 401);
+        }
+
+        $body = $this->parseJsonBody($request);
+        $nickname = trim((string)($body['nickname'] ?? ''));
+
+        if ($nickname === '') {
+            return json(['error' => '昵称不能为空'], 400);
+        }
+        if (mb_strlen($nickname) > 50) {
+            return json(['error' => '昵称不能超过 50 字'], 400);
+        }
+
+        MarketDb::updateUserNickname((string)$user['uid'], $nickname);
+        $user['nickname'] = $nickname;
+
+        return json([
+            'success' => true,
+            'profile' => $this->formatProfile($user, $request),
+        ]);
+    }
+
+    /**
+     * POST /api/account/avatar — 上传头像（multipart/form-data，Bearer token）
+     */
+    public function uploadAvatar(Request $request): Response
+    {
+        $user = $this->authUser($request);
+        if ($user === null) {
+            return json(['error' => '未登录'], 401);
+        }
+
+        $file = $request->file('file');
+        if ($file === null || !$file->isValid()) {
+            return json(['error' => '文件上传失败'], 400);
+        }
+
+        // 仅允许常见图片格式
+        $ext = strtolower($file->getUploadExtension());
+        if (!in_array($ext, ['png', 'jpg', 'jpeg', 'gif', 'webp', 'svg'], true)) {
+            return json(['error' => '仅支持图片文件'], 400);
+        }
+
+        $uploadDir = public_path() . '/uploads/avatars';
+        if (!is_dir($uploadDir)) {
+            mkdir($uploadDir, 0755, true);
+        }
+        $filename = 'avatar_' . (string)$user['uid'] . '_' . time() . '.' . $ext;
+        $file->move($uploadDir . '/' . $filename);
+
+        $host = (string)$request->header('Host', '');
+        $proto = (string)$request->header('X-Forwarded-Proto', 'http');
+        $scheme = $proto === 'https' ? 'https' : 'http';
+        $base = $host !== '' ? "{$scheme}://{$host}" : '';
+        $avatarUrl = $base !== '' ? "{$base}/uploads/avatars/{$filename}" : "/uploads/avatars/{$filename}";
+
+        MarketDb::updateUserAvatar((string)$user['uid'], $avatarUrl);
+        $user['avatar_url'] = $avatarUrl;
+
+        return json([
+            'success' => true,
+            'profile' => $this->formatProfile($user, $request),
         ]);
     }
 
     // ━━━ 内部工具 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+    private function formatProfile(array $user, Request $request): array
+    {
+        return [
+            'uid' => (string)$user['uid'],
+            'nickname' => (string)$user['nickname'],
+            'avatarUrl' => (string)($user['avatar_url'] ?? ''),
+        ];
+    }
 
     private function authUser(Request $request): ?array
     {

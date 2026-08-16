@@ -7,3 +7,4 @@
 /tests/tmp
 /tests/.phpunit.result.cache
 /data/market.db
+/public/uploads

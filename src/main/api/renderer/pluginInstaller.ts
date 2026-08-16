@@ -109,7 +109,7 @@ export class PluginInstallerAPI {
         this.deps.mainWindow!,
         {
           title: '选择插件文件',
-          filters: [{ name: '插件文件', extensions: ['zpx', 'zip'] }],
+          filters: [{ name: '插件文件', extensions: ['spk', 'zip'] }],
           properties: ['openFile']
         },
         '未选择文件'
@@ -137,7 +137,7 @@ export class PluginInstallerAPI {
         this.deps.mainWindow!,
         {
           title: '选择插件文件',
-          filters: [{ name: '插件文件', extensions: ['zpx', 'zip'] }],
+          filters: [{ name: '插件文件', extensions: ['spk', 'zip'] }],
           properties: ['openFile']
         },
         '未选择文件'
@@ -254,7 +254,7 @@ export class PluginInstallerAPI {
     this.marketDownloadTasks.set(pluginName, task)
 
     const tempDir = path.join(app.getPath('temp'), 'ztools-plugin-download', taskId)
-    const tempFilePath = path.join(tempDir, `${safePluginName}.zpx`)
+    const tempFilePath = path.join(tempDir, `${safePluginName}.spk`)
 
     try {
       console.log('[Plugins] 开始从市场安装插件:', pluginName)

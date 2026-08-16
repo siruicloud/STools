@@ -1,9 +1,9 @@
-appId: top.z-tools
-productName: ZTools
+appId: com.seaman.app
+productName: seaman
 publish:
   provider: github
-  owner: ZToolsCenter
-  repo: ZTools
+  owner: siruicloud
+  repo: STools
 directories:
   buildResources: build
 files:
@@ -35,13 +35,13 @@ asarUnpack:
   - '**/node_modules/sharp/**/*'
   - '**/node_modules/@img/**/*'
 fileAssociations:
-  - ext: zpx
-    name: ZTools Plugin
-    description: ZTools Plugin Package
+  - ext: spk
+    name: seaman Plugin
+    description: seaman Plugin Package
     role: Viewer
 win:
   compression: maximum
-  executableName: ZTools
+  executableName: seaman
   artifactName: ${name}-${version}-${os}-${arch}.${ext}
   target:
     - target: nsis
@@ -60,33 +60,6 @@ nsis:
   allowToChangeInstallationDirectory: true
   perMachine: false
   deleteAppDataOnUninstall: false
-mac:
-  compression: maximum
-  # The Developer ID identity is selected by CSC_NAME in CI. Leaving this
-  # unset keeps local builds compatible with machines that have no certificate.
-  entitlements: build/entitlements.mac.plist
-  entitlementsInherit: build/entitlements.mac.plist
-  extendInfo:
-    LSUIElement: true
-    NSCameraUsageDescription: Application requests access to the device's camera.
-    NSMicrophoneUsageDescription: Application requests access to the device's microphone.
-    NSDocumentsFolderUsageDescription: Application requests access to the user's Documents folder.
-    NSDownloadsFolderUsageDescription: Application requests access to the user's Downloads folder.
-  notarize: true
-  target:
-    - dmg
-    - zip
-  artifactName: ${name}-${version}-${os}-${arch}.${ext}
-dmg:
-  artifactName: ${name}-${version}-${os}-${arch}.${ext}
-linux:
-  target:
-    - AppImage
-    - deb
-  maintainer: electronjs.org
-  category: Utility
-appImage:
-  artifactName: ${name}-${version}-${os}-${arch}.${ext}
 npmRebuild: false
 
 afterPack: ./build/afterPack.js

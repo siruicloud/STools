@@ -69,8 +69,11 @@ if (macX64MetadataPath || macArm64MetadataPath) {
   const macOutputPath = path.join(metadataOutputDir, 'latest-mac.yml')
   writeUpdateMetadata(macOutputPath, macMetadata)
   console.log(`✅ 已生成 ${macOutputPath}`)
-} else if (requireUpdateMetadata) {
-  throw new Error('缺少 macOS 双架构更新元数据路径')
+} else if (requireUpdateMetadata && !macX64MetadataPath && !macArm64MetadataPath) {
+  // Windows-only 构建：mac 元数据路径未提供属正常，仅要求 Windows 元数据已生成。
+  if (!existsSync(windowsMetadataPath)) {
+    throw new Error('缺少更新元数据')
+  }
 }
 
 writeFileSync('changelog.md', updatedChangelog)

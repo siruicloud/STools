@@ -23,29 +23,8 @@ permissions:
 
 jobs:
   build:
-    name: Build on ${{ matrix.os }} (${{ matrix.arch }})
-    runs-on: ${{ matrix.os }}
-
-    strategy:
-      fail-fast: false
-      matrix:
-        include:
-          # macOS x64 (Intel, available until Aug 2027)
-          - os: macos-15-intel
-            arch: x64
-            build_cmd: pnpm run build:mac:x64
-            # electron-builder expects the certificate subject without its type prefix.
-            signing_identity: 'Zhengzhou Zhongsen Yunke Information Technology Co., Ltd. (4S4HH8375U)'
-          # macOS ARM64 (Apple Silicon)
-          - os: macos-14
-            arch: arm64
-            build_cmd: pnpm run build:mac:arm64
-            signing_identity: 'Zhengzhou Zhongsen Yunke Information Technology Co., Ltd. (4S4HH8375U)'
-          # Windows x64
-          - os: windows-latest
-            arch: x64
-            build_cmd: pnpm run build:win
-            signing_identity: ''
+    name: Build Windows x64
+    runs-on: windows-latest
 
     steps:
       - name: Check out git repository
@@ -88,11 +67,6 @@ jobs:
         with:
           version: 9
 
-      - name: Set up Python
-        uses: actions/setup-python@v5
-        with:
-          python-version: '3.10'
-
       - name: Install Node.js
         uses: actions/setup-node@v4
         with:
@@ -107,57 +81,16 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
-      - name: Prepare App Store Connect API key
-        if: startsWith(matrix.os, 'macos')
-        shell: bash
-        env:
-          APPLE_API_KEY_BASE64: ${{ secrets.APPLE_API_KEY }}
-          APPLE_API_KEY_ID: ${{ secrets.APPLE_API_KEY_ID }}
-        run: |
-          key_path="$RUNNER_TEMP/AuthKey_${APPLE_API_KEY_ID}.p8"
+      - name: Build and Package Windows
+        run: pnpm run build:win
 
-          # Decode the secret only into the ephemeral runner workspace.
-          node -e 'const fs=require("fs"); fs.writeFileSync(process.argv[1], Buffer.from(process.env.APPLE_API_KEY_BASE64, "base64"))' "$key_path"
-
-          test -s "$key_path"
-          grep -q 'BEGIN PRIVATE KEY' "$key_path"
-          chmod 600 "$key_path"
-          echo "APPLE_API_KEY=$key_path" >> "$GITHUB_ENV"
-
-      # 统一构建命令
-      - name: Build and Package
-        env:
-          CSC_LINK: ${{ startsWith(matrix.os, 'macos') && secrets.MAC_CSC_LINK || '' }}
-          CSC_KEY_PASSWORD: ${{ startsWith(matrix.os, 'macos') && secrets.MAC_CSC_KEY_PASSWORD || '' }}
-          CSC_NAME: ${{ matrix.signing_identity }}
-          APPLE_API_KEY_ID: ${{ startsWith(matrix.os, 'macos') && secrets.APPLE_API_KEY_ID || '' }}
-          APPLE_API_ISSUER: ${{ startsWith(matrix.os, 'macos') && secrets.APPLE_API_ISSUER || '' }}
-          APPLE_TEAM_ID: ${{ startsWith(matrix.os, 'macos') && secrets.APPLE_TEAM_ID || '' }}
-        run: ${{ matrix.build_cmd }}
-
-      - name: Verify macOS signature and notarization
-        if: startsWith(matrix.os, 'macos')
-        shell: bash
-        run: |
-          app_path="$(find dist -maxdepth 3 -type d -name '*.app' -print -quit)"
-          if [ -z "$app_path" ]; then
-            echo 'No macOS app bundle found in dist/' >&2
-            exit 1
-          fi
-
-          # Verify the complete nested bundle before artifacts are uploaded.
-          codesign --verify --deep --strict --verbose=2 "$app_path"
-          xcrun stapler validate "$app_path"
-          spctl --assess --type execute --verbose=4 "$app_path"
-
-      # 上传平台产物（只上传指定文件类型）
+      # 上传 Windows 产物（安装包/zip/更新元数据）
       - name: Upload build artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: artifact-${{ matrix.os }}-${{ matrix.arch }}
+          name: artifact-windows-x64
           path: |
             dist/*.exe
-            dist/*.dmg
             dist/*.zip
             dist/*.yml
             dist/*.blockmap
@@ -221,36 +154,21 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
-      - name: Download macOS x64 artifact
-        uses: actions/download-artifact@v4
-        with:
-          name: artifact-macos-15-intel-x64
-          path: dist/mac-x64
-
-      - name: Download macOS ARM64 artifact
-        uses: actions/download-artifact@v4
-        with:
-          name: artifact-macos-14-arm64
-          path: dist/mac-arm64
-
       - name: Download Windows artifact
         uses: actions/download-artifact@v4
         with:
-          name: artifact-windows-latest-x64
+          name: artifact-windows-x64
           path: dist/windows
 
-      # 合并 macOS 双架构元数据，并规范化 Windows 与 macOS 的更新清单。
       - name: Generate update info
         env:
           RELEASE_VERSION: ${{ steps.release_meta.outputs.version }}
           WINDOWS_UPDATE_METADATA: dist/windows/latest.yml
-          MAC_X64_UPDATE_METADATA: dist/mac-x64/latest-mac.yml
-          MAC_ARM64_UPDATE_METADATA: dist/mac-arm64/latest-mac.yml
           UPDATE_METADATA_OUTPUT_DIR: dist/release
           REQUIRE_UPDATE_METADATA: 'true'
         run: pnpm updater
 
-      # 上传安装包、标准完整更新包、blockmap 和最终元数据。
+      # 上传安装包、更新包、blockmap 和最终元数据。
       - name: Upload Release Assets
         uses: softprops/action-gh-release@v2
         with:
@@ -264,21 +182,4 @@ jobs:
             dist/windows/*.exe
             dist/windows/*.zip
             dist/windows/*.blockmap
-            dist/mac-x64/*.dmg
-            dist/mac-x64/*.zip
-            dist/mac-x64/*.blockmap
-            dist/mac-arm64/*.dmg
-            dist/mac-arm64/*.zip
-            dist/mac-arm64/*.blockmap
             dist/release/*.yml
-
-      - name: Sync release metadata to ZTools server
-        env:
-          GITHUB_TOKEN: ${{ github.token }}
-          RELEASE_VERSION: ${{ steps.release_meta.outputs.version }}
-          RELEASE_TAG: ${{ steps.release_meta.outputs.tag }}
-          ZTOOLS_RELEASE_SYNC_TOKEN: ${{ secrets.ZTOOLS_RELEASE_SYNC_TOKEN }}
-          ZTOOLS_RELEASE_SYNC_URL: https://z-tools.top
-          WINDOWS_UPDATE_METADATA: dist/release/latest.yml
-          MAC_UPDATE_METADATA: dist/release/latest-mac.yml
-        run: node scripts/sync-release-server.mjs

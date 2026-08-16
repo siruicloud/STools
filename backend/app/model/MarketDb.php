@@ -404,7 +404,9 @@ SQL);
 
     public static function findUserByUsername(string $username): ?array
     {
-        $stmt = self::connection()->prepare('SELECT * FROM users WHERE uid = ? OR nickname = ? LIMIT 1');
+        $stmt = self::connection()->prepare(
+            'SELECT * FROM users WHERE LOWER(uid) = LOWER(?) OR LOWER(nickname) = LOWER(?) LIMIT 1'
+        );
         $stmt->execute([$username, $username]);
         $row = $stmt->fetch();
         return $row === false ? null : $row;
@@ -414,7 +416,7 @@ SQL);
     public static function registerUser(string $username, string $password): array
     {
         $pdo = self::connection();
-        $uid = 'u_' . preg_replace('/[^a-zA-Z0-9_-]/', '_', $username);
+        $uid = 'u_' . strtolower(preg_replace('/[^a-zA-Z0-9_-]/', '_', $username));
         $stmt = $pdo->prepare(
             'INSERT INTO users (uid, nickname, avatar_url, password, token, refresh_token, created_at) VALUES (?, ?, ?, ?, ?, ?, ?)'
         );
@@ -446,6 +448,20 @@ SQL);
         $stmt->execute([$refreshToken]);
         $row = $stmt->fetch();
         return $row === false ? null : $row;
+    }
+
+    /** 更新用户昵称 */
+    public static function updateUserNickname(string $uid, string $nickname): void
+    {
+        $stmt = self::connection()->prepare('UPDATE users SET nickname = ? WHERE uid = ?');
+        $stmt->execute([$nickname, $uid]);
+    }
+
+    /** 更新用户头像 URL */
+    public static function updateUserAvatar(string $uid, string $avatarUrl): void
+    {
+        $stmt = self::connection()->prepare('UPDATE users SET avatar_url = ? WHERE uid = ?');
+        $stmt->execute([$avatarUrl, $uid]);
     }
 
     public static function createUser(string $uid, string $nickname, string $avatarUrl, string $token): void

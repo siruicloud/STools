@@ -30,6 +30,8 @@ Route::post('/api/auth', [AuthController::class, 'login']);
 Route::post('/api/auth/refresh', [AuthController::class, 'refresh']);
 Route::get('/api/auth/captcha-config', [AuthController::class, 'captchaConfig']);
 Route::get('/api/account/profile', [AuthController::class, 'profile']);
+Route::put('/api/account/nickname', [AuthController::class, 'updateNickname'])->middleware([AuthMiddleware::class]);
+Route::post('/api/account/avatar', [AuthController::class, 'uploadAvatar'])->middleware([AuthMiddleware::class]);
 
 // ━━━ 动态 SVG Banner ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 Route::get('/banners/{name}.svg', [BannerController::class, 'svg']);
