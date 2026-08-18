@@ -5,7 +5,7 @@ import {
   FULL_INSTALL_RELEASE_URL
 } from './runtimeCompatibility'
 
-if (process.platform === 'win32') app.setAppUserModelId('top.z-tools')
+if (process.platform === 'win32') app.setAppUserModelId('com.seaman.app')
 
 const gotTheLock = app.requestSingleInstanceLock()
 const runtimeCompatibility = checkRuntimeCompatibility({

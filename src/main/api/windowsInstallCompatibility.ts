@@ -5,7 +5,7 @@ import yaml from 'yaml'
 import { getGitHubReleaseUrl, GITHUB_LATEST_RELEASE_URL } from '@shared/updateSource'
 import { EXPECTED_ELECTRON_VERSION } from '../runtimeCompatibility'
 
-export const WINDOWS_APP_ID = 'top.z-tools'
+export const WINDOWS_APP_ID = 'com.seaman.app'
 export const WINDOWS_ELECTRON_VERSION = EXPECTED_ELECTRON_VERSION
 export const WINDOWS_UPDATER_TYPE = 'electron-updater-nsis'
 export const WINDOWS_INSTALL_INFO_FILE = 'ztools-install-info.json'
@@ -125,8 +125,8 @@ export async function getWindowsInstallCompatibility(): Promise<WindowsInstallCo
     const updateConfig = yaml.parse(await fs.readFile(updateConfigPath, 'utf8'))
     hasUpdateConfig =
       updateConfig?.provider === 'github' &&
-      updateConfig?.owner === 'ZToolsCenter' &&
-      updateConfig?.repo === 'ZTools'
+      updateConfig?.owner === 'siruicloud' &&
+      updateConfig?.repo === 'STools'
   } catch {
     hasUpdateConfig = false
   }

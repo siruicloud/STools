@@ -91,16 +91,16 @@ export function generateDownloadLinksMarkdown(downloadUrl, version) {
   let links = '\n\n---\n\n### 下载地址：\n\n'
 
   links += '#### Windows 10/11 (x64)：\n\n'
-  links += `- 安装版：[ZTools-${version}-win-x64-setup.exe](${downloadUrl}/ZTools-${version}-win-x64-setup.exe)\n`
-  links += `- 便携版：[ZTools-${version}-win-x64.zip](${downloadUrl}/ZTools-${version}-win-x64.zip)\n\n`
+  links += `- 安装版：[seaman-${version}-win-x64-setup.exe](${downloadUrl}/seaman-${version}-win-x64-setup.exe)\n`
+  links += `- 便携版：[seaman-${version}-win-x64.zip](${downloadUrl}/seaman-${version}-win-x64.zip)\n\n`
 
   links += '#### macOS 11+ (Apple Silicon)：\n\n'
-  links += `- DMG：[ZTools-${version}-mac-arm64.dmg](${downloadUrl}/ZTools-${version}-mac-arm64.dmg)\n`
-  links += `- ZIP：[ZTools-${version}-mac-arm64.zip](${downloadUrl}/ZTools-${version}-mac-arm64.zip)\n\n`
+  links += `- DMG：[seaman-${version}-mac-arm64.dmg](${downloadUrl}/seaman-${version}-mac-arm64.dmg)\n`
+  links += `- ZIP：[seaman-${version}-mac-arm64.zip](${downloadUrl}/seaman-${version}-mac-arm64.zip)\n\n`
 
   links += '#### macOS 10.13+ (Intel)：\n\n'
-  links += `- DMG：[ZTools-${version}-mac-x64.dmg](${downloadUrl}/ZTools-${version}-mac-x64.dmg)\n`
-  links += `- ZIP：[ZTools-${version}-mac-x64.zip](${downloadUrl}/ZTools-${version}-mac-x64.zip)\n`
+  links += `- DMG：[seaman-${version}-mac-x64.dmg](${downloadUrl}/seaman-${version}-mac-x64.dmg)\n`
+  links += `- ZIP：[seaman-${version}-mac-x64.zip](${downloadUrl}/seaman-${version}-mac-x64.zip)\n`
 
   return links
 }

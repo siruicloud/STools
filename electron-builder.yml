@@ -42,7 +42,7 @@ fileAssociations:
 win:
   compression: maximum
   executableName: seaman
-  artifactName: ${name}-${version}-${os}-${arch}.${ext}
+  artifactName: ${productName}-${version}-${os}-${arch}.${ext}
   target:
     - target: nsis
       arch:
@@ -51,7 +51,7 @@ win:
       arch:
         - x64
 nsis:
-  artifactName: ${name}-${version}-${os}-${arch}-setup.${ext}
+  artifactName: ${productName}-${version}-${os}-${arch}-setup.${ext}
   include: build/installer.nsh
   shortcutName: ${productName}
   uninstallDisplayName: ${productName}
