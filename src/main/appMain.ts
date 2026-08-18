@@ -137,6 +137,12 @@ app.whenReady().then(async () => {
   // 处理首次运行时的旧数据导入（如果存在旧数据）
   await handleFirstRunStorageImport()
 
+  // 注册自定义图标协议到默认 session (ztools-icon://)
+  registerIconProtocolForSession(session.defaultSession)
+
+  // 信任私有自签 CA（api.seaman.cc 使用 seaman 私有 CA 签发的长期证书）
+  installPrivateCaTrust()
+
   // 首次启动时静默自动注册（基于 deviceId 生成账号）
   if (await autoRegisterService.shouldAutoRegister()) {
     const result = await autoRegisterService.performAutoRegister()
@@ -146,12 +152,6 @@ app.whenReady().then(async () => {
       console.warn('[Main] 静默自动注册失败:', result.error)
     }
   }
-
-  // 注册自定义图标协议到默认 session (ztools-icon://)
-  registerIconProtocolForSession(session.defaultSession)
-
-  // 信任私有自签 CA（api.seaman.cc 使用 seaman 私有 CA 签发的长期证书）
-  installPrivateCaTrust()
 
   // ✅ 首先加载内置插件
   loadInternalPlugins()
