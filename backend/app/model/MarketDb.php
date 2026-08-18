@@ -215,6 +215,14 @@ CREATE TABLE IF NOT EXISTS users (
   created_at INTEGER DEFAULT 0
 );
 
+CREATE TABLE IF NOT EXISTS user_sync_data (
+  uid TEXT NOT NULL,
+  key TEXT NOT NULL,
+  value TEXT DEFAULT '',
+  updated_at INTEGER DEFAULT 0,
+  PRIMARY KEY (uid, key)
+);
+
 CREATE INDEX IF NOT EXISTS idx_plugins_category ON plugins(category_id);
 CREATE INDEX IF NOT EXISTS idx_plugins_recommended ON plugins(is_recommended);
 CREATE INDEX IF NOT EXISTS idx_comments_plugin ON comments(plugin_name);
@@ -704,6 +712,56 @@ SQL);
     public static function verifyPassword(string $password, string $hash): bool
     {
         return $hash !== '' && password_verify($password, $hash);
+    }
+
+    // ━━━ 用户同步数据 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+    /**
+     * 获取用户所有同步数据
+     * @return array<string, mixed> key => value 映射
+     */
+    public static function getUserSyncData(string $uid): array
+    {
+        $stmt = self::connection()->prepare('SELECT key, value FROM user_sync_data WHERE uid = ?');
+        $stmt->execute([$uid]);
+        $result = [];
+        while ($row = $stmt->fetch()) {
+            $value = json_decode((string)$row['value'], true);
+            $result[(string)$row['key']] = $value;
+        }
+        return $result;
+    }
+
+    /**
+     * 设置用户同步数据
+     */
+    public static function setUserSyncData(string $uid, string $key, mixed $value): void
+    {
+        $pdo = self::connection();
+        $jsonValue = json_encode($value, JSON_UNESCAPED_UNICODE);
+        $now = (int)round(microtime(true) * 1000);
+
+        if (self::isMysql()) {
+            $stmt = $pdo->prepare(
+                'INSERT INTO user_sync_data (uid, key, value, updated_at) VALUES (?, ?, ?, ?)
+                 ON DUPLICATE KEY UPDATE value = VALUES(value), updated_at = VALUES(updated_at)'
+            );
+        } else {
+            $stmt = $pdo->prepare(
+                'INSERT INTO user_sync_data (uid, key, value, updated_at) VALUES (?, ?, ?, ?)
+                 ON CONFLICT(uid, key) DO UPDATE SET value = excluded.value, updated_at = excluded.updated_at'
+            );
+        }
+        $stmt->execute([$uid, $key, $jsonValue, $now]);
+    }
+
+    /**
+     * 删除用户同步数据
+     */
+    public static function deleteUserSyncData(string $uid, string $key): void
+    {
+        $stmt = self::connection()->prepare('DELETE FROM user_sync_data WHERE uid = ? AND key = ?');
+        $stmt->execute([$uid, $key]);
     }
 
     // ━━━ 内部工具 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━

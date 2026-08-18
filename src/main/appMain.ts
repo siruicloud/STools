@@ -10,6 +10,7 @@ import appsAPI from './api/renderer/commands'
 import pluginsAPI from './api/renderer/plugins'
 import appWatcher from './appWatcher'
 import activityHeartbeatService from './core/activity/heartbeatService'
+import autoRegisterService from './core/account/autoRegisterService'
 import {
   ensureMacAccessibilityPermission,
   focusAccessibilityPermissionWindow,
@@ -135,6 +136,16 @@ app.whenReady().then(async () => {
 
   // 处理首次运行时的旧数据导入（如果存在旧数据）
   await handleFirstRunStorageImport()
+
+  // 首次启动时静默自动注册（基于 deviceId 生成账号）
+  if (await autoRegisterService.shouldAutoRegister()) {
+    const result = await autoRegisterService.performAutoRegister()
+    if (result.success) {
+      console.log('[Main] 静默自动注册成功:', result.username)
+    } else {
+      console.warn('[Main] 静默自动注册失败:', result.error)
+    }
+  }
 
   // 注册自定义图标协议到默认 session (ztools-icon://)
   registerIconProtocolForSession(session.defaultSession)

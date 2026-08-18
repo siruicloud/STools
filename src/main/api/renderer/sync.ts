@@ -10,6 +10,7 @@ import pluginDeviceAPI from '../plugin/device'
 import { defaultAccountImportService } from '../../core/storage/defaultAccountImportService'
 import activityHeartbeatService from '../../core/activity/heartbeatService'
 import { cacheUserProfile } from '../../core/account/userProfileStore'
+import pluginDataSyncService from '../../core/sync/pluginDataSyncService'
 import {
   onSyncCredentialsInvalidated,
   refreshStoredSyncTokens
@@ -756,6 +757,40 @@ export class SyncAPI {
         }
       }
     )
+
+    // ==================== 插件数据同步 ====================
+
+    ipcMain.handle('sync:plugin-data-upload', async () => {
+      try {
+        return await pluginDataSyncService.uploadPluginData()
+      } catch (error: any) {
+        return { success: false, error: error.message }
+      }
+    })
+
+    ipcMain.handle('sync:plugin-data-download', async () => {
+      try {
+        return await pluginDataSyncService.downloadPluginData()
+      } catch (error: any) {
+        return { success: false, error: error.message }
+      }
+    })
+
+    ipcMain.handle('sync:plugin-data-sync', async () => {
+      try {
+        return await pluginDataSyncService.sync()
+      } catch (error: any) {
+        return { success: false, error: error.message }
+      }
+    })
+
+    ipcMain.handle('sync:plugin-data-last-sync-time', async () => {
+      try {
+        return { success: true, time: pluginDataSyncService.getLastSyncTime() }
+      } catch (error: any) {
+        return { success: false, error: error.message }
+      }
+    })
   }
 
   private syncServerUrlToHttp(serverUrl: string): string {

@@ -19,6 +19,7 @@ use app\controller\ApiController;
 use app\controller\AuthController;
 use app\controller\BannerController;
 use app\controller\MarketController;
+use app\controller\SyncController;
 use app\middleware\AuthMiddleware;
 
 // 健康检查
@@ -33,6 +34,11 @@ Route::get('/api/account/profile', [AuthController::class, 'profile']);
 Route::put('/api/account/nickname', [AuthController::class, 'updateNickname'])->middleware([AuthMiddleware::class]);
 Route::post('/api/account/avatar', [AuthController::class, 'uploadAvatar'])->middleware([AuthMiddleware::class]);
 
+// ━━━ 插件数据同步 API ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+Route::get('/api/sync/data', [SyncController::class, 'getData'])->middleware([AuthMiddleware::class]);
+Route::post('/api/sync/data', [SyncController::class, 'setData'])->middleware([AuthMiddleware::class]);
+Route::delete('/api/sync/data', [SyncController::class, 'deleteData'])->middleware([AuthMiddleware::class]);
+
 // ━━━ 动态 SVG Banner ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 Route::get('/banners/{name}.svg', [BannerController::class, 'svg']);
 
@@ -40,6 +46,7 @@ Route::get('/banners/{name}.svg', [BannerController::class, 'svg']);
 Route::options('/api/hello', corsFallback());
 Route::options('/api/market/{path:.+}', corsFallback());
 Route::options('/api/market', corsFallback());
+Route::options('/api/sync/data', corsFallback());
 
 function corsFallback(): callable
 {
