@@ -1,55 +1,61 @@
 <script setup lang="ts">
 import defaultAvatar from '@/assets/image/default.png'
 import { useToast } from '@/components'
-import { ONLINE_SYNC_SERVER_URL, notifyAccountChanged } from '@/composables/useZToolsAccount'
+import {
+  ONLINE_SYNC_SERVER_URL,
+  loginZToolsAccount,
+  registerZToolsAccount,
+  sendEmailCode,
+  notifyAccountChanged,
+  promptDefaultDataImportAfterLogin
+} from '@/composables/useZToolsAccount'
 import { computed, onMounted, ref } from 'vue'
 import { useRouter } from 'vue-router'
 
 interface AccountProfileCache {
   uid: string
   nickname?: string
+  email?: string
   avatarUrl?: string
+  inviteCode?: string
   updatedAt: number
 }
 
 const router = useRouter()
 const { success, error, warning } = useToast()
 
+const isLoggedIn = ref(false)
 const username = ref('')
 const nickname = ref('')
+const email = ref('')
 const avatar = ref(defaultAvatar)
+const inviteCode = ref('')
 const loadingProfile = ref(true)
-const loadingStats = ref(false)
 const editingNickname = ref(false)
 const nicknameInput = ref('')
 const updatingNickname = ref(false)
-const stats = ref<{
-  documentCount: number
-  attachmentCount: number
-  storageBytes: number
-  monthlyTraffic: number
-} | null>(null)
 
-const displayName = computed(() => nickname.value || username.value || 'seaman 用户')
+type AuthMode = 'login' | 'register'
+const authMode = ref<AuthMode>('login')
+
+const loginForm = ref({ account: '', password: '' })
+const registerForm = ref({ username: '', email: '', password: '', code: '' })
+const submitting = ref(false)
+
+const sendingCode = ref(false)
+const codeCountdown = ref(0)
+let codeTimer: ReturnType<typeof setInterval> | null = null
+
+const displayName = computed(() => nickname.value || username.value || '用户')
 
 onMounted(() => {
   void loadAccount()
 })
 
-/**
- * 生成指定账号的本地资料缓存键。
- * @param uid 账号唯一标识
- * @returns 本地数据库缓存键
- */
 function profileCacheKey(uid: string): string {
   return `account-profile-cache:${uid}`
 }
 
-/**
- * 读取指定账号的本地资料缓存。
- * @param uid 账号唯一标识
- * @returns 账号资料缓存；不存在或读取失败时返回 null
- */
 async function readCachedProfile(uid: string): Promise<AccountProfileCache | null> {
   if (!uid) return null
 
@@ -60,7 +66,9 @@ async function readCachedProfile(uid: string): Promise<AccountProfileCache | nul
     return {
       uid: typeof cached.uid === 'string' ? cached.uid : uid,
       nickname: typeof cached.nickname === 'string' ? cached.nickname : '',
+      email: typeof cached.email === 'string' ? cached.email : '',
       avatarUrl: typeof cached.avatarUrl === 'string' ? cached.avatarUrl : '',
+      inviteCode: typeof cached.inviteCode === 'string' ? cached.inviteCode : '',
       updatedAt: Number(cached.updatedAt || 0)
     }
   } catch {
@@ -68,11 +76,6 @@ async function readCachedProfile(uid: string): Promise<AccountProfileCache | nul
   }
 }
 
-/**
- * 持久化账号资料缓存，供侧边栏和个人中心快速展示。
- * @param profile 要写入的账号资料
- * @returns 缓存写入完成后结束的 Promise
- */
 async function writeCachedProfile(profile: AccountProfileCache): Promise<void> {
   if (!profile.uid) return
 
@@ -80,61 +83,48 @@ async function writeCachedProfile(profile: AccountProfileCache): Promise<void> {
     await window.ztools.internal.dbPut(profileCacheKey(profile.uid), {
       uid: profile.uid,
       nickname: profile.nickname || '',
+      email: profile.email || '',
       avatarUrl: profile.avatarUrl || '',
+      inviteCode: profile.inviteCode || '',
       updatedAt: profile.updatedAt || Date.now()
     })
-  } catch {
-    // 本地缓存失败不阻断资料更新和账号操作。
-  }
+  } catch {}
 }
 
-/**
- * 将账号资料应用到当前页面状态。
- * @param profile 要展示的账号资料
- * @param fallbackUid 资料缺少账号标识时使用的兜底值
- * @returns 无返回值
- */
 function applyProfile(profile: AccountProfileCache | null, fallbackUid: string): void {
   username.value = profile?.uid || fallbackUid
   nickname.value = profile?.nickname || ''
+  email.value = profile?.email || ''
   avatar.value = profile?.avatarUrl || defaultAvatar
+  inviteCode.value = profile?.inviteCode || ''
 }
 
-/**
- * 校验登录状态并加载个人中心所需资料。
- * @returns 资料加载完成后结束的 Promise
- */
 async function loadAccount(): Promise<void> {
   loadingProfile.value = true
 
   try {
-    // 个人中心只允许当前 ZTools 云同步账号访问。
     const result = await window.ztools.internal.syncGetConfig()
     const config = result.success ? result.config : null
     const uid = config?.username || ''
-    const isLoggedIn = Boolean(config?.token && config.serverUrl === ONLINE_SYNC_SERVER_URL && uid)
-    if (!isLoggedIn) {
-      await router.replace({ name: 'GeneralSetting' })
+    const loggedIn = Boolean(config?.token && config.serverUrl === ONLINE_SYNC_SERVER_URL && uid)
+    if (!loggedIn) {
+      isLoggedIn.value = false
+      loadingProfile.value = false
       return
     }
 
-    // 先使用本地缓存完成首屏，再并行刷新远端资料和统计数据。
+    isLoggedIn.value = true
     const cachedProfile = await readCachedProfile(uid)
     applyProfile(cachedProfile, uid)
-    await Promise.allSettled([refreshProfile(uid), loadCloudStats()])
+    await refreshProfile(uid)
   } catch (err: unknown) {
     console.error('加载个人中心失败:', err)
-    error('加载个人中心失败')
+    isLoggedIn.value = false
   } finally {
     loadingProfile.value = false
   }
 }
 
-/**
- * 从服务端刷新账号资料并更新本地缓存。
- * @param expectedUid 当前页面预期加载的账号标识
- * @returns 资料刷新完成后结束的 Promise
- */
 async function refreshProfile(expectedUid: string): Promise<void> {
   try {
     const result = await window.ztools.internal.syncGetAccountProfile()
@@ -143,50 +133,19 @@ async function refreshProfile(expectedUid: string): Promise<void> {
     const profile = {
       uid: result.profile.uid || expectedUid,
       nickname: result.profile.nickname || '',
+      email: result.profile.email || '',
       avatarUrl: result.profile.avatarUrl || '',
+      inviteCode: result.profile.inviteCode || '',
       updatedAt: Date.now()
     }
     if (profile.uid !== expectedUid) return
 
-    // 仅应用当前账号的返回结果，避免账号切换期间写入错位资料。
     applyProfile(profile, expectedUid)
     await writeCachedProfile(profile)
-  } catch {
-    // 远端刷新失败时继续使用本地缓存，个人中心仍保持可用。
-  }
+  } catch {}
 }
 
-/**
- * 加载当前账号的云存储与流量统计。
- * @returns 统计加载完成后结束的 Promise
- */
-async function loadCloudStats(): Promise<void> {
-  loadingStats.value = true
-
-  try {
-    const result = await window.ztools.internal.syncGetAccountStats()
-    if (!result.success || !result.stats) {
-      stats.value = null
-      return
-    }
-
-    stats.value = {
-      documentCount: result.stats.documentCount || 0,
-      attachmentCount: result.stats.attachmentCount || 0,
-      storageBytes: result.stats.storageBytes || 0,
-      monthlyTraffic: result.stats.monthlyTraffic || 0
-    }
-  } finally {
-    loadingStats.value = false
-  }
-}
-
-/**
- * 选择并上传新的账号头像。
- * @returns 头像选择与上传完成后结束的 Promise
- */
 async function changeAvatar(): Promise<void> {
-  // 先由主进程选择本地图片，再交给同步服务上传。
   const selected = await window.ztools.internal.selectImageFile()
   if (!selected.success || !selected.path) {
     if (selected.error) error(selected.error)
@@ -199,10 +158,10 @@ async function changeAvatar(): Promise<void> {
     return
   }
 
-  // 上传成功后同步当前页面、本地缓存和侧边栏账号信息。
   const profile = {
     uid: uploaded.profile.uid || username.value,
     nickname: uploaded.profile.nickname || nickname.value,
+    email: uploaded.profile.email || email.value,
     avatarUrl: uploaded.profile.avatarUrl || '',
     updatedAt: Date.now()
   }
@@ -212,13 +171,8 @@ async function changeAvatar(): Promise<void> {
   success('账号头像已更新')
 }
 
-/**
- * 退出当前账号并返回通用设置页面。
- * @returns 退出流程完成后结束的 Promise
- */
 async function logout(): Promise<void> {
   try {
-    // 先停止同步任务，再清空持久化登录凭据。
     await window.ztools.internal.syncStopAutoSync()
     await window.ztools.internal.syncSaveConfig({
       enabled: false,
@@ -237,28 +191,16 @@ async function logout(): Promise<void> {
   }
 }
 
-/**
- * 进入昵称编辑状态并填充当前昵称。
- * @returns 无返回值
- */
 function startEditNickname(): void {
   nicknameInput.value = nickname.value || username.value
   editingNickname.value = true
 }
 
-/**
- * 取消昵称编辑并清空临时输入。
- * @returns 无返回值
- */
 function cancelEditNickname(): void {
   editingNickname.value = false
   nicknameInput.value = ''
 }
 
-/**
- * 保存当前输入的新昵称并同步账号资料缓存。
- * @returns 昵称保存完成后结束的 Promise
- */
 async function saveNickname(): Promise<void> {
   const newNickname = nicknameInput.value.trim()
   if (!newNickname) {
@@ -274,7 +216,6 @@ async function saveNickname(): Promise<void> {
   try {
     updatingNickname.value = true
 
-    // 提交前重新读取令牌，避免使用已过期或已退出的账号状态。
     const config = await window.ztools.internal.syncGetConfig()
     if (!config.success || !config.config?.token) {
       error('未登录，无法修改昵称')
@@ -291,10 +232,10 @@ async function saveNickname(): Promise<void> {
       return
     }
 
-    // 保存服务端最终资料，并通知侧边栏更新展示名称。
     const profile = {
       uid: result.profile.uid || username.value,
       nickname: result.profile.nickname || newNickname,
+      email: result.profile.email || email.value,
       avatarUrl: result.profile.avatarUrl || avatar.value,
       updatedAt: Date.now()
     }
@@ -310,17 +251,111 @@ async function saveNickname(): Promise<void> {
   }
 }
 
-/**
- * 将字节数格式化为适合界面展示的容量文本。
- * @param value 要格式化的字节数
- * @returns 带容量单位的文本
- */
-function formatBytes(value?: number): string {
-  const size = Number(value || 0)
-  if (size < 1024) return `${size} B`
-  if (size < 1024 * 1024) return `${(size / 1024).toFixed(1)} KB`
-  if (size < 1024 * 1024 * 1024) return `${(size / 1024 / 1024).toFixed(1)} MB`
-  return `${(size / 1024 / 1024 / 1024).toFixed(2)} GB`
+async function handleSendCode(): Promise<void> {
+  if (!registerForm.value.email) {
+    warning('请先输入邮箱')
+    return
+  }
+
+  if (sendingCode.value || codeCountdown.value > 0) return
+
+  sendingCode.value = true
+  try {
+    await sendEmailCode({ email: registerForm.value.email, event: 'register' })
+    success('验证码已发送')
+    codeCountdown.value = 60
+    codeTimer = setInterval(() => {
+      codeCountdown.value--
+      if (codeCountdown.value <= 0) {
+        if (codeTimer) {
+          clearInterval(codeTimer)
+          codeTimer = null
+        }
+      }
+    }, 1000)
+  } catch (err: unknown) {
+    error(err instanceof Error ? err.message : '发送验证码失败')
+  } finally {
+    sendingCode.value = false
+  }
+}
+
+async function handleLogin(): Promise<void> {
+  if (!loginForm.value.account || !loginForm.value.password) {
+    warning('请填写账号和密码')
+    return
+  }
+
+  submitting.value = true
+  try {
+    await loginZToolsAccount({
+      account: loginForm.value.account,
+      password: loginForm.value.password
+    })
+    success('登录成功')
+    await promptDefaultDataImportAfterLogin({ confirm, success, error })
+    await loadAccount()
+    notifyAccountChanged()
+  } catch (err: unknown) {
+    error(err instanceof Error ? err.message : '登录失败')
+  } finally {
+    submitting.value = false
+  }
+}
+
+async function handleRegister(): Promise<void> {
+  if (!registerForm.value.username) {
+    warning('请输入用户名')
+    return
+  }
+  if (!registerForm.value.email) {
+    warning('请输入邮箱')
+    return
+  }
+  if (!registerForm.value.password) {
+    warning('请输入密码')
+    return
+  }
+  if (!registerForm.value.code) {
+    warning('请输入验证码')
+    return
+  }
+
+  submitting.value = true
+  try {
+    await registerZToolsAccount({
+      username: registerForm.value.username,
+      email: registerForm.value.email,
+      password: registerForm.value.password,
+      code: registerForm.value.code
+    })
+    success('注册成功')
+    await promptDefaultDataImportAfterLogin({ confirm, success, error })
+    await loadAccount()
+    notifyAccountChanged()
+  } catch (err: unknown) {
+    error(err instanceof Error ? err.message : '注册失败')
+  } finally {
+    submitting.value = false
+  }
+}
+
+function switchToRegister(): void {
+  authMode.value = 'register'
+}
+
+function switchToLogin(): void {
+  authMode.value = 'login'
+}
+
+async function copyInviteCode(): Promise<void> {
+  if (!inviteCode.value) return
+  try {
+    await window.ztools.copyText(inviteCode.value)
+    success('邀请码已复制')
+  } catch {
+    error('复制失败')
+  }
 }
 </script>
 
@@ -328,82 +363,198 @@ function formatBytes(value?: number): string {
   <div class="content-panel">
     <div v-if="loadingProfile" class="loading-state">加载中...</div>
     <div v-else class="account-page">
-      <section class="profile-overview">
-        <button class="avatar-button" type="button" @click="changeAvatar">
-          <img class="profile-avatar" :src="avatar" alt="" />
-          <span>修改头像</span>
-        </button>
-        <div class="profile-heading">
-          <strong>{{ displayName }}</strong>
-          <span>seaman 云同步账号</span>
-        </div>
-      </section>
+      <!-- 未登录状态 -->
+      <template v-if="!isLoggedIn">
+        <section class="login-section">
+          <div class="login-header">
+            <div class="login-logo">
+              <img src="/logo.png" alt="" />
+            </div>
+            <div class="login-heading">
+              <strong>{{ authMode === 'login' ? '登录' : '注册' }}</strong>
+              <span>账号同步数据与设置</span>
+            </div>
+          </div>
 
-      <section class="profile-info" aria-label="账号资料">
-        <div class="info-item">
-          <span class="info-label">用户名</span>
-          <span class="info-value">{{ username }}</span>
-        </div>
-        <div class="info-item">
-          <span class="info-label">昵称</span>
-          <div v-if="!editingNickname" class="info-value-with-action">
-            <span class="info-value">{{ nickname || username }}</span>
-            <button type="button" class="btn-link" @click="startEditNickname">修改</button>
-          </div>
-          <div v-else class="nickname-edit">
-            <input
-              v-model="nicknameInput"
-              type="text"
-              placeholder="输入昵称"
-              maxlength="50"
-              @keyup.enter="saveNickname"
-              @keyup.esc="cancelEditNickname"
-            />
-            <button
-              type="button"
-              class="btn-primary btn-sm"
-              :disabled="updatingNickname"
-              @click="saveNickname"
-            >
-              {{ updatingNickname ? '保存中...' : '保存' }}
-            </button>
-            <button
-              type="button"
-              class="btn-secondary btn-sm"
-              :disabled="updatingNickname"
-              @click="cancelEditNickname"
-            >
-              取消
-            </button>
-          </div>
-        </div>
-      </section>
+          <!-- 登录表单 -->
+          <form v-if="authMode === 'login'" class="login-form" @submit.prevent="handleLogin">
+            <label>
+              <span>账号</span>
+              <input
+                v-model.trim="loginForm.account"
+                type="text"
+                autocomplete="username"
+                placeholder="用户名/邮箱"
+                maxlength="50"
+              />
+            </label>
+            <label>
+              <span>密码</span>
+              <input
+                v-model="loginForm.password"
+                type="password"
+                autocomplete="current-password"
+                placeholder="8-20位密码"
+                minlength="8"
+                maxlength="20"
+              />
+            </label>
+          </form>
 
-      <section class="usage-section">
-        <h2>云同步用量</h2>
-        <div class="stats-grid">
-          <div class="stat-item">
-            <span>云空间占用</span>
-            <strong>{{ loadingStats ? '加载中' : formatBytes(stats?.storageBytes) }}</strong>
-          </div>
-          <div class="stat-item">
-            <span>文档数量</span>
-            <strong>{{ stats?.documentCount || 0 }}</strong>
-          </div>
-          <div class="stat-item">
-            <span>附件数量</span>
-            <strong>{{ stats?.attachmentCount || 0 }}</strong>
-          </div>
-          <div class="stat-item">
-            <span>本月流量</span>
-            <strong>{{ formatBytes(stats?.monthlyTraffic) }}</strong>
-          </div>
-        </div>
-      </section>
+          <!-- 注册表单 -->
+          <form v-else class="login-form" @submit.prevent="handleRegister">
+            <label>
+              <span>用户名</span>
+              <input
+                v-model.trim="registerForm.username"
+                type="text"
+                placeholder="3-30字符"
+                minlength="3"
+                maxlength="30"
+              />
+            </label>
+            <label>
+              <span>邮箱</span>
+              <input
+                v-model.trim="registerForm.email"
+                type="email"
+                autocomplete="email"
+                placeholder="输入邮箱"
+                maxlength="50"
+              />
+            </label>
+            <label>
+              <span>验证码</span>
+              <div class="input-with-button">
+                <input
+                  v-model.trim="registerForm.code"
+                  type="text"
+                  placeholder="6位验证码"
+                  maxlength="6"
+                />
+                <button
+                  type="button"
+                  class="code-btn"
+                  :disabled="sendingCode || codeCountdown > 0 || !registerForm.email"
+                  @click="handleSendCode"
+                >
+                  {{
+                    codeCountdown > 0 ? `${codeCountdown}s` : sendingCode ? '发送中' : '获取验证码'
+                  }}
+                </button>
+              </div>
+            </label>
+            <label>
+              <span>密码</span>
+              <input
+                v-model="registerForm.password"
+                type="password"
+                autocomplete="new-password"
+                placeholder="8-20位密码"
+                minlength="8"
+                maxlength="20"
+              />
+            </label>
+          </form>
 
-      <footer class="profile-actions">
-        <button type="button" class="btn-danger" @click="logout">退出登录</button>
-      </footer>
+          <button
+            type="button"
+            class="login-btn"
+            :disabled="submitting"
+            @click="authMode === 'login' ? handleLogin() : handleRegister()"
+          >
+            {{ submitting ? '提交中...' : authMode === 'login' ? '登录' : '注册' }}
+          </button>
+
+          <div class="auth-switch">
+            <span v-if="authMode === 'login'">
+              没有账号？
+              <button type="button" class="link-btn" @click="switchToRegister">立即注册</button>
+            </span>
+            <span v-else>
+              已有账号？
+              <button type="button" class="link-btn" @click="switchToLogin">立即登录</button>
+            </span>
+          </div>
+        </section>
+      </template>
+
+      <!-- 已登录状态 -->
+      <template v-else>
+        <!-- 用户信息卡片 -->
+        <section class="user-card">
+          <button class="avatar-wrapper" type="button" @click="changeAvatar">
+            <img class="user-avatar" :src="avatar" alt="" />
+            <div class="avatar-edit-overlay">
+              <span>更换</span>
+            </div>
+          </button>
+          <div class="user-info">
+            <h1 class="user-name">{{ displayName }}</h1>
+            <p class="user-desc">云同步账号</p>
+          </div>
+        </section>
+
+        <!-- 基本信息 -->
+        <section class="info-section">
+          <h2 class="section-title">基本信息</h2>
+          <div class="info-list">
+            <div class="info-row">
+              <span class="info-label">昵称</span>
+              <div v-if="!editingNickname" class="info-action">
+                <span class="info-value">{{ nickname || username }}</span>
+                <button type="button" class="action-link" @click="startEditNickname">修改</button>
+              </div>
+              <div v-else class="edit-form">
+                <input
+                  v-model="nicknameInput"
+                  type="text"
+                  placeholder="输入昵称"
+                  maxlength="50"
+                  class="edit-input"
+                  @keyup.enter="saveNickname"
+                  @keyup.esc="cancelEditNickname"
+                />
+                <button
+                  type="button"
+                  class="btn-save"
+                  :disabled="updatingNickname"
+                  @click="saveNickname"
+                >
+                  {{ updatingNickname ? '保存中...' : '保存' }}
+                </button>
+                <button
+                  type="button"
+                  class="btn-cancel"
+                  :disabled="updatingNickname"
+                  @click="cancelEditNickname"
+                >
+                  取消
+                </button>
+              </div>
+            </div>
+            <div class="info-row">
+              <span class="info-label">邮箱</span>
+              <span class="info-value">{{ email || '未绑定' }}</span>
+            </div>
+            <div v-if="inviteCode" class="info-row">
+              <span class="info-label">邀请码</span>
+              <div class="info-action">
+                <span class="info-value invite-code">{{ inviteCode }}</span>
+                <button type="button" class="action-link" @click="copyInviteCode">复制</button>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- 账号操作 -->
+        <section class="actions-section">
+          <button type="button" class="logout-btn" @click="logout">
+            <span class="i-z-back" />
+            退出登录
+          </button>
+        </section>
+      </template>
     </div>
   </div>
 </template>
@@ -430,199 +581,410 @@ function formatBytes(value?: number): string {
   font-size: 13px;
 }
 
-.profile-overview {
+.login-section {
+  padding: 20px 0 28px;
+}
+
+.login-header {
   display: flex;
   align-items: center;
   gap: 18px;
   padding-bottom: 28px;
 }
 
-.avatar-button {
-  display: grid;
-  gap: 6px;
-  border: 0;
-  background: transparent;
-  color: var(--primary-color);
-  cursor: pointer;
-  padding: 0;
-  font-size: 12px;
-}
-
-.profile-avatar {
+.login-logo {
+  display: flex;
+  align-items: center;
+  justify-content: center;
   width: 72px;
   height: 72px;
   border-radius: 50%;
-  object-fit: cover;
   background: var(--hover-bg);
+  overflow: hidden;
 }
 
-.profile-heading {
+.login-logo img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.login-heading {
   display: grid;
   gap: 5px;
 }
 
-.profile-heading strong {
+.login-heading strong {
   color: var(--text-color);
   font-size: 20px;
 }
 
-.profile-heading span {
+.login-heading span {
   color: var(--text-secondary);
   font-size: 13px;
 }
 
-.profile-info {
-  border-top: 1px solid var(--divider-color);
+.login-form {
+  display: grid;
+  gap: 16px;
 }
 
-.info-item {
+.login-form label {
+  display: grid;
+  gap: 8px;
+  color: var(--text-secondary);
+  font-size: 13px;
+}
+
+.login-form input {
+  box-sizing: border-box;
+  width: 100%;
+  height: 44px;
+  border: 1px solid var(--divider-color);
+  border-radius: 8px;
+  background: var(--control-bg);
+  color: var(--text-color);
+  outline: none;
+  padding: 0 14px;
+  font-size: 14px;
+}
+
+.login-form input::placeholder {
+  color: var(--text-secondary);
+}
+
+.login-form input:focus {
+  border-color: var(--primary-color);
+}
+
+.input-with-button {
+  display: flex;
+  gap: 10px;
+}
+
+.input-with-button input {
+  flex: 1;
+}
+
+.code-btn {
+  flex-shrink: 0;
+  height: 44px;
+  padding: 0 14px;
+  border: 1px solid var(--primary-color);
+  border-radius: 8px;
+  background: transparent;
+  color: var(--primary-color);
+  font-size: 13px;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: all 0.2s;
+}
+
+.code-btn:hover:not(:disabled) {
+  background: color-mix(in srgb, var(--primary-color) 10%, transparent);
+}
+
+.code-btn:disabled {
+  cursor: not-allowed;
+  opacity: 0.5;
+}
+
+.login-btn {
+  margin-top: 8px;
+  width: 100%;
+  height: 44px;
+  border: 0;
+  border-radius: 8px;
+  background: var(--primary-color);
+  color: var(--text-on-primary);
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 500;
+  transition: opacity 0.2s;
+}
+
+.login-btn:hover:not(:disabled) {
+  opacity: 0.9;
+}
+
+.login-btn:disabled {
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
+.auth-switch {
+  margin-top: 16px;
+  text-align: center;
+  color: var(--text-secondary);
+  font-size: 13px;
+}
+
+.link-btn {
+  background: none;
+  border: none;
+  color: var(--primary-color);
+  cursor: pointer;
+  font-size: 13px;
+  padding: 0;
+}
+
+.link-btn:hover {
+  text-decoration: underline;
+}
+
+.profile-overview,
+.profile-info,
+.usage-section,
+.profile-actions {
+  display: none;
+}
+
+/* 用户卡片 */
+.user-card {
   display: flex;
   align-items: center;
-  justify-content: space-between;
   gap: 20px;
-  min-height: 58px;
+  padding: 24px;
+  margin-bottom: 24px;
+  background: var(--card-bg, var(--hover-bg));
+  border-radius: 16px;
+  border: 1px solid var(--divider-color);
+}
+
+.avatar-wrapper {
+  position: relative;
+  width: 80px;
+  height: 80px;
+  border-radius: 50%;
+  overflow: hidden;
+  cursor: pointer;
+  border: 0;
+  padding: 0;
+  background: transparent;
+}
+
+.user-avatar {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  background: var(--hover-bg);
+}
+
+.avatar-edit-overlay {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0, 0, 0, 0.5);
+  color: #fff;
+  font-size: 13px;
+  opacity: 0;
+  transition: opacity 0.2s;
+}
+
+.avatar-wrapper:hover .avatar-edit-overlay {
+  opacity: 1;
+}
+
+.user-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.user-name {
+  margin: 0 0 4px;
+  color: var(--text-color);
+  font-size: 22px;
+  font-weight: 600;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.user-desc {
+  margin: 0;
+  color: var(--text-secondary);
+  font-size: 13px;
+}
+
+/* 区块标题 */
+.section-title {
+  margin: 0 0 12px;
+  color: var(--text-secondary);
+  font-size: 13px;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+/* 信息列表 */
+.info-section {
+  margin-bottom: 24px;
+}
+
+.info-list {
+  background: var(--card-bg, var(--hover-bg));
+  border-radius: 12px;
+  border: 1px solid var(--divider-color);
+  overflow: hidden;
+}
+
+.info-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 16px 20px;
   border-bottom: 1px solid var(--divider-color);
 }
 
+.info-row:last-child {
+  border-bottom: none;
+}
+
 .info-label {
-  flex-shrink: 0;
   color: var(--text-secondary);
-  font-size: 13px;
+  font-size: 14px;
 }
 
 .info-value {
   color: var(--text-color);
   font-size: 14px;
-  overflow-wrap: anywhere;
 }
 
-.info-value-with-action,
-.nickname-edit {
+.invite-code {
+  font-family: 'SF Mono', Monaco, 'Cascadia Code', 'Roboto Mono', monospace;
+  letter-spacing: 0.5px;
+}
+
+.info-action {
   display: flex;
   align-items: center;
-  justify-content: flex-end;
-  gap: 8px;
-  min-width: 0;
+  gap: 12px;
 }
 
-.btn-link {
-  border: 0;
+.action-link {
   background: none;
+  border: none;
   color: var(--primary-color);
   cursor: pointer;
-  padding: 0;
   font-size: 13px;
+  padding: 4px 8px;
+  border-radius: 4px;
+  transition: background 0.2s;
 }
 
-.nickname-edit {
-  flex: 1;
+.action-link:hover {
+  background: color-mix(in srgb, var(--primary-color) 10%, transparent);
 }
 
-.nickname-edit input {
-  width: min(260px, 100%);
+/* 编辑表单 */
+.edit-form {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.edit-input {
+  height: 36px;
+  padding: 0 12px;
   border: 1px solid var(--divider-color);
   border-radius: 6px;
-  outline: none;
-  padding: 7px 10px;
   background: var(--control-bg);
   color: var(--text-color);
-  font-size: 13px;
+  font-size: 14px;
+  outline: none;
+  min-width: 160px;
 }
 
-.nickname-edit input:focus {
+.edit-input:focus {
   border-color: var(--primary-color);
 }
 
-.btn-sm,
-.btn-danger {
+.btn-save {
+  height: 36px;
+  padding: 0 16px;
   border: 0;
   border-radius: 6px;
-  cursor: pointer;
-  white-space: nowrap;
-}
-
-.btn-sm {
-  padding: 7px 12px;
-  font-size: 13px;
-}
-
-.btn-primary {
   background: var(--primary-color);
   color: var(--text-on-primary);
+  font-size: 13px;
+  cursor: pointer;
+  transition: opacity 0.2s;
 }
 
-.btn-secondary {
-  background: var(--control-bg);
-  color: var(--text-color);
+.btn-save:hover:not(:disabled) {
+  opacity: 0.9;
 }
 
-.btn-sm:disabled {
+.btn-save:disabled {
   cursor: not-allowed;
   opacity: 0.6;
 }
 
-.usage-section {
-  padding: 28px 0;
-}
-
-.usage-section h2 {
-  margin: 0 0 14px;
-  color: var(--primary-color);
-  font-size: 14px;
-  font-weight: 600;
-}
-
-.stats-grid {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 12px;
-}
-
-.stat-item {
-  display: grid;
-  gap: 5px;
-  min-height: 82px;
+.btn-cancel {
+  height: 36px;
+  padding: 0 16px;
   border: 1px solid var(--divider-color);
-  border-radius: 8px;
-  padding: 16px;
-}
-
-.stat-item span {
-  color: var(--text-secondary);
-  font-size: 12px;
-}
-
-.stat-item strong {
+  border-radius: 6px;
+  background: var(--hover-bg);
   color: var(--text-color);
-  font-size: 18px;
+  font-size: 13px;
+  cursor: pointer;
+  transition: background 0.2s;
 }
 
-.profile-actions {
-  padding-top: 20px;
-  border-top: 1px solid var(--divider-color);
+.btn-cancel:hover:not(:disabled) {
+  background: var(--active-bg);
 }
 
-.btn-danger {
-  padding: 9px 16px;
-  background: #fdecef;
-  color: #d03050;
+.btn-cancel:disabled {
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
+/* 账号操作 */
+.actions-section {
+  padding-top: 8px;
+}
+
+.logout-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 20px;
+  background: var(--danger-bg, #fdecef);
+  color: var(--danger-color, #d03050);
+  border: 0;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 14px;
+  transition: opacity 0.2s;
+}
+
+.logout-btn:hover {
+  opacity: 0.85;
 }
 
 @media (prefers-color-scheme: dark) {
-  .btn-danger {
-    background: rgba(208, 48, 80, 0.18);
+  .logout-btn {
+    background: rgba(208, 48, 80, 0.15);
     color: #ff8098;
+  }
+
+  .user-card,
+  .info-list {
+    background: var(--card-bg, rgba(255, 255, 255, 0.03));
   }
 }
 
 @media (max-width: 760px) {
-  .stats-grid {
-    grid-template-columns: 1fr;
+  .edit-form {
+    flex-wrap: wrap;
   }
 
-  .nickname-edit {
-    align-items: stretch;
-    flex-direction: column;
+  .edit-input {
+    width: 100%;
   }
 }
 </style>
