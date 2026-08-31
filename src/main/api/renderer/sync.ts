@@ -16,6 +16,7 @@ import {
   refreshStoredSyncTokens
 } from '../../core/sync/syncAuthTokenService'
 import type { PluginManager } from '../../managers/pluginManager'
+import { syncServerUrlToHttp as configSyncUrlToHttp } from '../../config/env'
 
 /**
  * 同步 API（WebSocket 版）
@@ -273,6 +274,71 @@ export class SyncAPI {
       }
     })
 
+    ipcMain.handle(
+      'sync:send-email-code',
+      async (_event, params: { serverUrl: string; email: string; event: string }) => {
+        try {
+          const httpUrl = this.syncServerUrlToHttp(params.serverUrl)
+          const url = `${httpUrl}/api/ems/send`
+          const body = `email=${encodeURIComponent(params.email)}&event=${encodeURIComponent(params.event)}`
+          console.log('[sync:send-email-code] Request:', { url, body })
+
+          const response = await net.fetch(url, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+            body
+          })
+
+          const data = await response.json()
+          console.log('[sync:send-email-code] Response:', data)
+
+          if (data.code !== 1) {
+            return { success: false, error: data.msg || '发送验证码失败' }
+          }
+          return { success: true }
+        } catch (error: any) {
+          console.error('[sync:send-email-code] Error:', error)
+          return { success: false, error: error.message }
+        }
+      }
+    )
+
+    ipcMain.handle(
+      'sync:register',
+      async (
+        _event,
+        params: {
+          serverUrl: string
+          username: string
+          email: string
+          password: string
+          code: string
+        }
+      ) => {
+        try {
+          const httpUrl = this.syncServerUrlToHttp(params.serverUrl)
+          const response = await net.fetch(`${httpUrl}/api/user/register`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+            body: `username=${encodeURIComponent(params.username)}&email=${encodeURIComponent(params.email)}&password=${encodeURIComponent(params.password)}&code=${encodeURIComponent(params.code)}`
+          })
+
+          const data = await response.json()
+          if (data.code !== 1) {
+            return { success: false, error: data.msg || '注册失败' }
+          }
+
+          return {
+            success: true,
+            token: data.data?.userinfo?.token,
+            username: data.data?.userinfo?.username
+          }
+        } catch (error: any) {
+          return { success: false, error: error.message }
+        }
+      }
+    )
+
     // 登录/注册（自动：不存在则创建，存在则验证密码）
     ipcMain.handle(
       'sync:login',
@@ -280,35 +346,28 @@ export class SyncAPI {
         _event,
         params: {
           serverUrl: string
-          username: string
+          account: string
           password: string
-          captchaVerifyParam?: string
         }
       ) => {
         try {
-          // 从 ws:// 转换为 http:// 用于 REST API
           const httpUrl = this.syncServerUrlToHttp(params.serverUrl)
 
-          const response = await net.fetch(`${httpUrl}/api/auth`, {
+          const response = await net.fetch(`${httpUrl}/api/user/login`, {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              uid: params.username,
-              password: params.password,
-              captchaVerifyParam: params.captchaVerifyParam
-            })
+            headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+            body: `account=${encodeURIComponent(params.account)}&password=${encodeURIComponent(params.password)}`
           })
 
           const data = await response.json()
-          if (!response.ok) {
-            return { success: false, error: data.error || '认证失败' }
+          if (data.code !== 1) {
+            return { success: false, error: data.msg || '登录失败' }
           }
 
           return {
             success: true,
-            token: data.token,
-            refreshToken: data.refreshToken,
-            isNew: data.isNew
+            token: data.data?.userinfo?.token,
+            username: data.data?.userinfo?.username || params.account
           }
         } catch (error: any) {
           return { success: false, error: error.message }
@@ -794,7 +853,7 @@ export class SyncAPI {
   }
 
   private syncServerUrlToHttp(serverUrl: string): string {
-    return serverUrl.replace(/^ws:\/\//, 'http://').replace(/^wss:\/\//, 'https://')
+    return configSyncUrlToHttp(serverUrl)
   }
 
   /**

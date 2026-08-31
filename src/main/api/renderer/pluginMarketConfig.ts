@@ -6,10 +6,15 @@ import {
 } from '../../core/sync/syncAuthTokenService'
 import type { HttpRequestOptions, HttpResponse } from '../../utils/httpRequest'
 import { httpRequest } from '../../utils/httpRequest.js'
+import {
+  SYNC_SERVER_URL,
+  PLUGIN_MARKET_API_BASE,
+  syncServerUrlToHttp as syncUrlToHttp
+} from '../../config/env'
 
-// 本地自建后端地址；发布生产前必须改回 https://z-tools.top/api/market
-export const DEFAULT_PLUGIN_MARKET_API_BASE = 'https://api.seaman.cc/api/market'
-export const DEFAULT_SYNC_SERVER_URL = 'https://api.seaman.cc'
+// 插件市场 API 地址 (从统一配置导入)
+export const DEFAULT_PLUGIN_MARKET_API_BASE = PLUGIN_MARKET_API_BASE
+export const DEFAULT_SYNC_SERVER_URL = SYNC_SERVER_URL
 
 export class PluginMarketAuthRequiredError extends Error {
   constructor(message = '需要登录后操作') {
@@ -130,11 +135,6 @@ async function requestPluginMarketOnce(
   })
 }
 
-/**
- * 通过统一设备级刷新服务更新插件市场使用的官方账号 token。
- * @param marketApiBase 插件市场 API 地址；保留参数以兼容现有调用边界。
- * @returns 获得可用访问令牌时返回 true。
- */
 async function refreshPluginMarketToken(marketApiBase: string): Promise<boolean> {
   void marketApiBase
   const config = await getStoredSyncConfig()
@@ -147,10 +147,6 @@ async function refreshPluginMarketToken(marketApiBase: string): Promise<boolean>
   )
 }
 
-/**
- * 读取插件市场认证使用的设备级同步配置。
- * @returns 当前同步配置；读取失败或未配置时返回 null。
- */
 async function getStoredSyncConfig(): Promise<StoredSyncConfig | null> {
   return loadStoredSyncConfig()
 }
@@ -170,5 +166,5 @@ function safeParseJSON(value: string): any {
 }
 
 export function syncServerUrlToHttp(serverUrl: string): string {
-  return serverUrl.replace(/^ws:\/\//, 'http://').replace(/^wss:\/\//, 'https://')
+  return syncUrlToHttp(serverUrl)
 }

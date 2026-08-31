@@ -1,14 +1,27 @@
-export const ONLINE_SYNC_SERVER_URL = 'https://api.seaman.cc'
+import { SYNC_SERVER_URL } from '@/config/env'
+
+export const ONLINE_SYNC_SERVER_URL = SYNC_SERVER_URL
 export const ACCOUNT_CHANGED_EVENT = 'ztools-account-changed'
 
 export interface ZToolsLoginPayload {
-  username: string
+  account: string
   password: string
-  captchaVerifyParam?: string
+}
+
+export interface ZToolsRegisterPayload {
+  username: string
+  email: string
+  password: string
+  code: string
+}
+
+export interface ZToolsSendCodePayload {
+  email: string
+  event: 'register' | 'resetpwd'
 }
 
 export interface ZToolsLoginResult {
-  isNew: boolean
+  username: string
 }
 
 export interface DefaultDataImportPromptHandlers {
@@ -27,12 +40,51 @@ export function notifyAccountChanged(): void {
   window.dispatchEvent(new CustomEvent(ACCOUNT_CHANGED_EVENT))
 }
 
+export async function sendEmailCode(payload: ZToolsSendCodePayload): Promise<void> {
+  const result = await window.ztools.internal.syncSendEmailCode({
+    serverUrl: ONLINE_SYNC_SERVER_URL,
+    email: payload.email,
+    event: payload.event
+  })
+  if (!result.success) {
+    throw new Error(result.error || '发送验证码失败')
+  }
+}
+
+export async function registerZToolsAccount(
+  payload: ZToolsRegisterPayload
+): Promise<ZToolsLoginResult> {
+  const registerResult = await window.ztools.internal.syncRegister({
+    serverUrl: ONLINE_SYNC_SERVER_URL,
+    username: payload.username,
+    email: payload.email,
+    password: payload.password,
+    code: payload.code
+  })
+  if (!registerResult.success || !registerResult.token) {
+    throw new Error(registerResult.error || '注册失败')
+  }
+
+  await window.ztools.internal.syncSaveConfig({
+    enabled: true,
+    serverUrl: ONLINE_SYNC_SERVER_URL,
+    token: registerResult.token,
+    refreshToken: '',
+    syncInterval: 30,
+    username: registerResult.username || payload.username
+  })
+
+  notifyAccountChanged()
+  return {
+    username: registerResult.username || payload.username
+  }
+}
+
 export async function loginZToolsAccount(payload: ZToolsLoginPayload): Promise<ZToolsLoginResult> {
   const loginResult = await window.ztools.internal.syncLogin({
     serverUrl: ONLINE_SYNC_SERVER_URL,
-    username: payload.username,
-    password: payload.password,
-    captchaVerifyParam: payload.captchaVerifyParam
+    account: payload.account,
+    password: payload.password
   })
   if (!loginResult.success || !loginResult.token) {
     throw new Error(loginResult.error || '登录失败')
@@ -44,14 +96,14 @@ export async function loginZToolsAccount(payload: ZToolsLoginPayload): Promise<Z
     enabled: Boolean(currentConfig?.enabled),
     serverUrl: ONLINE_SYNC_SERVER_URL,
     token: loginResult.token,
-    refreshToken: loginResult.refreshToken || '',
+    refreshToken: '',
     syncInterval: currentConfig?.syncInterval || 30,
-    username: payload.username
+    username: loginResult.username || payload.account
   })
 
   notifyAccountChanged()
   return {
-    isNew: Boolean(loginResult.isNew)
+    username: loginResult.username || payload.account
   }
 }
 
