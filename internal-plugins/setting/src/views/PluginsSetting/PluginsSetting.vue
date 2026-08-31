@@ -2,7 +2,7 @@
 import { computed, onMounted, onUnmounted, ref, watch } from 'vue'
 import { useToast, AdaptiveIcon } from '@/components'
 import type { PluginUninstallOptions } from '@/components'
-import { PluginDetail, NpmInstallPanel } from './components'
+import { PluginDetail } from './components'
 import { compareVersions, upgradeInstalledPluginFromMarket, weightedSearch } from '@/utils'
 import { useJumpFunction, useZtoolsSubInput } from '@/composables'
 import { jumpFunctionPluginMarketSetting } from '@/views/PluginMarketSetting/PluginMarketSetting'
@@ -14,17 +14,18 @@ import { useRouter } from 'vue-router'
 
 const { success, error, warning, info, confirm } = useToast()
 
+// 插件变更监听器函数引用
+let pluginsChangedHandler: (() => void) | null = null
+
 // 插件相关状态
 const plugins = ref<any[]>([])
 const disabledPluginPaths = ref<string[]>([])
 const runningPlugins = ref<string[]>([])
 const isLoading = ref(true)
 const isImporting = ref(false)
-const isImportingNpm = ref(false)
 const isDeleting = ref(false)
 const isKilling = ref(false)
 const isKillingAll = ref(false)
-const isExportingAll = ref(false)
 const isCheckingMarketUpdates = ref(false)
 // 是否正在执行“全部更新”
 const isUpgradingAll = ref(false)
@@ -34,13 +35,11 @@ const upgradeProgressDone = ref(0)
 const upgradeProgressTotal = ref(0)
 
 // npm 安装相关状态
-const showNpmPanel = ref(false)
 const showMoreMenu = ref(false)
 
 // 详情弹窗状态
 const isDetailVisible = ref(false)
 const selectedPlugin = ref<any | null>(null)
-const npmInstallPanelRef = ref<InstanceType<typeof NpmInstallPanel>>()
 
 // 过滤状态
 const filterStatus = ref<'all' | 'running' | 'upgradable'>('all')
@@ -516,44 +515,10 @@ async function handleTogglePluginDisabled(plugin: any, disabled: boolean): Promi
   }
 }
 
-// 导出全部插件到下载目录
-async function handleExportAllPlugins(): Promise<void> {
-  if (isExportingAll.value) return
-
-  const confirmed = await confirm({
-    title: '导出全部插件',
-    message: '将导出全部已安装插件（不含开发中插件），是否继续？',
-    type: 'info',
-    confirmText: '导出',
-    cancelText: '取消'
-  })
-  if (!confirmed) return
-
-  isExportingAll.value = true
-  showMoreMenu.value = false
-
-  try {
-    const result = await window.ztools.internal.exportAllPlugins()
-    if (result.success) {
-      success(`导出成功，共 ${result.count} 个插件`)
-    } else {
-      error(`导出失败: ${result.error}`)
-    }
-  } catch (err: any) {
-    console.error('导出插件失败:', err)
-    error(`导出失败: ${err.message || '未知错误'}`)
-  } finally {
-    isExportingAll.value = false
-  }
-}
-
-// 处理 ESC 按键
+// 打开插件详情
 function handleKeydown(e: KeyboardEvent): void {
   if (e.key === 'Escape') {
-    if (showNpmPanel.value) {
-      e.stopPropagation()
-      closeNpmPanel()
-    } else if (showMoreMenu.value) {
+    if (showMoreMenu.value) {
       e.stopPropagation()
       showMoreMenu.value = false
     } else if (isDetailVisible.value) {
@@ -583,6 +548,21 @@ onMounted(async () => {
   // 如果有需要自动打开的插件，加载完成后打开详情
   window.addEventListener('keydown', handleKeydown, true)
   window.addEventListener('click', handleClickOutside)
+  // 监听全局 DOM 事件（由 main.ts 转发的 IPC 事件）
+  pluginsChangedHandler = () => {
+    console.log('[PluginsSetting] 收到 plugins-changed DOM 事件')
+    loadPlugins()
+  }
+  window.addEventListener('plugins-changed', pluginsChangedHandler)
+})
+
+onUnmounted(() => {
+  window.removeEventListener('keydown', handleKeydown, true)
+  window.removeEventListener('click', handleClickOutside)
+  if (pluginsChangedHandler) {
+    window.removeEventListener('plugins-changed', pluginsChangedHandler)
+    pluginsChangedHandler = null
+  }
 })
 
 // 处理对应 ztools code 进来的功能
@@ -591,11 +571,6 @@ useJumpFunction((state) => {
   if (state.payload) {
     void openPluginByPayload(state.payload)
   }
-})
-
-onUnmounted(() => {
-  window.removeEventListener('keydown', handleKeydown, true)
-  window.removeEventListener('click', handleClickOutside)
 })
 
 // 打开指定插件名称的详情
@@ -634,21 +609,6 @@ function closePluginDetail(): void {
   selectedPlugin.value = null
 }
 
-// 显示 npm 安装面板
-function showNpmInstallPanel(): void {
-  showNpmPanel.value = true
-  isDetailVisible.value = true
-  showMoreMenu.value = false
-}
-
-// 关闭 npm 安装面板
-function closeNpmPanel(): void {
-  if (isImportingNpm.value) return
-  showNpmPanel.value = false
-  isDetailVisible.value = false
-  npmInstallPanelRef.value?.resetForm()
-}
-
 // 切换更多菜单
 function toggleMoreMenu(): void {
   showMoreMenu.value = !showMoreMenu.value
@@ -661,39 +621,6 @@ function closeMoreMenu(event?: Event): void {
     return
   }
   showMoreMenu.value = false
-}
-
-// 从 npm 安装插件
-async function handleInstallFromNpm(data: {
-  packageName: string
-  useChinaMirror: boolean
-}): Promise<void> {
-  if (isImportingNpm.value) return
-
-  isImportingNpm.value = true
-  try {
-    const result = await window.ztools.internal.installPluginFromNpm({
-      packageName: data.packageName,
-      useChinaMirror: data.useChinaMirror
-    })
-    if (result.success) {
-      // 先设置加载状态为 false，这样 closeNpmPanel 才能正常关闭
-      isImportingNpm.value = false
-      // 重新加载插件列表
-      await loadPlugins()
-      // 关闭面板
-      closeNpmPanel()
-      // 显示成功提示
-      success(`插件 "${data.packageName}" 安装成功！`)
-    } else {
-      error(`安装失败: ${result.error}`)
-    }
-  } catch (err: any) {
-    console.error('从 npm 安装插件失败:', err)
-    error(`安装失败: ${err.message || '未知错误'}`)
-  } finally {
-    isImportingNpm.value = false
-  }
 }
 </script>
 <template>
@@ -769,28 +696,6 @@ async function handleInstallFromNpm(data: {
                 </button>
                 <button
                   class="more-menu-item"
-                  :disabled="isImportingNpm"
-                  @click="showNpmInstallPanel"
-                >
-                  <svg
-                    xmlns="http://www.w3.org/2000/svg"
-                    width="16"
-                    height="16"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    stroke-width="2"
-                    stroke-linecap="round"
-                    stroke-linejoin="round"
-                  >
-                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
-                    <polyline points="7 10 12 15 17 10"></polyline>
-                    <line x1="12" y1="15" x2="12" y2="3"></line>
-                  </svg>
-                  {{ isImportingNpm ? '安装中...' : '从 npm 安装' }}
-                </button>
-                <button
-                  class="more-menu-item"
                   :disabled="
                     isUpgradingAll || isCheckingMarketUpdates || upgradablePluginsCount === 0
                   "
@@ -806,28 +711,6 @@ async function handleInstallFromNpm(data: {
                           ? `全部更新 (${upgradablePluginsCount})`
                           : '暂无可更新'
                   }}
-                </button>
-                <button
-                  class="more-menu-item"
-                  :disabled="isExportingAll"
-                  @click="handleExportAllPlugins"
-                >
-                  <svg
-                    xmlns="http://www.w3.org/2000/svg"
-                    width="16"
-                    height="16"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    stroke-width="2"
-                    stroke-linecap="round"
-                    stroke-linejoin="round"
-                  >
-                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
-                    <polyline points="17 8 12 3 7 8"></polyline>
-                    <line x1="12" y1="3" x2="12" y2="15"></line>
-                  </svg>
-                  {{ isExportingAll ? '导出中...' : '导出全部插件' }}
                 </button>
                 <button
                   class="more-menu-item kill-all-item"
@@ -895,24 +778,11 @@ async function handleInstallFromNpm(data: {
 
             <div class="plugin-meta">
               <button
-                class="icon-btn open-btn"
+                class="btn btn-sm"
                 :disabled="isPluginDisabled(plugin.path)"
-                title="打开插件"
                 @click.stop="handleOpenPlugin(plugin)"
               >
-                <svg
-                  xmlns="http://www.w3.org/2000/svg"
-                  width="14"
-                  height="14"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  stroke-width="2"
-                  stroke-linecap="round"
-                  stroke-linejoin="round"
-                >
-                  <polygon points="5 3 19 12 5 21 5 3"></polygon>
-                </svg>
+                启动
               </button>
               <button
                 v-if="isPluginRunning(plugin.path)"
@@ -933,27 +803,6 @@ async function handleInstallFromNpm(data: {
                   stroke-linejoin="round"
                 >
                   <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
-                </svg>
-              </button>
-              <button
-                class="icon-btn folder-btn"
-                title="打开插件目录"
-                @click.stop="handleOpenFolder(plugin)"
-              >
-                <svg
-                  xmlns="http://www.w3.org/2000/svg"
-                  width="14"
-                  height="14"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  stroke-width="2"
-                  stroke-linecap="round"
-                  stroke-linejoin="round"
-                >
-                  <path
-                    d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"
-                  ></path>
                 </svg>
               </button>
               <button
@@ -1036,17 +885,6 @@ async function handleInstallFromNpm(data: {
         @open-market="handleOpenMarketDetail(selectedPlugin)"
         @toggle-pin="togglePin(selectedPlugin)"
         @toggle-disabled="handleTogglePluginDisabled(selectedPlugin, $event)"
-      />
-    </Transition>
-
-    <!-- npm 安装面板 -->
-    <Transition name="slide">
-      <NpmInstallPanel
-        v-if="isDetailVisible && showNpmPanel"
-        ref="npmInstallPanelRef"
-        :visible="showNpmPanel"
-        @back="closeNpmPanel"
-        @install="handleInstallFromNpm"
       />
     </Transition>
   </div>
@@ -1350,14 +1188,6 @@ async function handleInstallFromNpm(data: {
 
 .kill-btn:hover:not(:disabled) {
   background: var(--warning-light-bg);
-}
-
-.folder-btn {
-  color: var(--primary-color);
-}
-
-.folder-btn:hover {
-  background: var(--primary-light-bg);
 }
 
 .pin-btn {
