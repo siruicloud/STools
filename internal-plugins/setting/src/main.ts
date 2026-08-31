@@ -6,7 +6,12 @@ import { dispatchZtoolsCodeEvent, initZtoolsBaseEventHandler } from '@/events'
 // 单独导入注册事件
 import './events/allCodeEvent'
 
-// 统一对 ztools onPluginEnter 事件进行派发, 内部不要再对 ztools.onPluginEnter 进行监听
+window.ztools.internal.onPluginsChanged(() => {
+  console.log('[main.ts] 收到 plugins-changed 事件，准备转发 DOM 事件')
+  window.dispatchEvent(new CustomEvent('plugins-changed'))
+  console.log('[main.ts] DOM 事件已发送')
+})
+
 ztools.onPluginEnter((action) => {
   // 将 utools 事件派发根据不同的 code 进行派发出去
   console.log('[插件事件: onPluginEnter]', action)
@@ -14,11 +19,11 @@ ztools.onPluginEnter((action) => {
 })
 
 ztools.onPluginOut(() => {
-  if (router.currentRoute.value.name === 'GeneralSetting') {
+  if (router.currentRoute.value.name === 'Plugins') {
     return
   }
 
-  void router.replace({ name: 'GeneralSetting' }).catch((error) => {
+  void router.replace({ name: 'Plugins' }).catch((error) => {
     console.error('[插件事件: onPluginOut] 重置设置页路由失败', error)
   })
 })

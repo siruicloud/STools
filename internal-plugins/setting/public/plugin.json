@@ -1,7 +1,7 @@
 {
   "$schema": "node_modules/@ztools-center/ztools-api-types/resource/ztools.schema.json",
   "name": "setting",
-  "title": "设置",
+  "title": "管理中心",
   "description": "ZTools 内置设置插件",
   "author": "Zing",
   "version": "1.0.0",

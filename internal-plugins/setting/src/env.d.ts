@@ -749,6 +749,8 @@ declare global {
           callback: (payload: { username?: string | null }) => void
         ) => () => void
 
+        onPluginsChanged?: (callback: () => void) => () => void
+
         // AI 供应商管理
         aiProviders: {
           getAll: () => Promise<{ success: boolean; data?: AiProviderStore; error?: string }>

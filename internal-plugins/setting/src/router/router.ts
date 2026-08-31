@@ -22,7 +22,18 @@ export type MenuRouterItemType = (RouteRecord | RouteRecordRaw) & {
 const homeRoutes: MenuRouterItemType[] = [
   {
     path: '/',
-    redirect: '/generalSetting'
+    redirect: '/plugins'
+  },
+  {
+    path: '/plugins',
+    name: 'Plugins',
+    component: () => import('@/views/PluginsSetting/PluginsSetting.vue'),
+    meta: {
+      menu: {
+        label: '已安装插件',
+        icon: 'i-z-plugin'
+      }
+    }
   },
   {
     path: '/market',
@@ -38,35 +49,12 @@ const homeRoutes: MenuRouterItemType[] = [
   {
     path: '/generalSetting',
     name: 'GeneralSetting',
-    component: () => import('@/views/GeneralSetting/GeneralSetting.vue'),
-    meta: {
-      menu: {
-        label: '通用设置',
-        icon: 'i-z-settings'
-      }
-    }
+    component: () => import('@/views/GeneralSetting/GeneralSetting.vue')
   },
   {
     path: '/shortcuts',
     name: 'Shortcuts',
-    component: () => import('@/views/ShortcutsSetting/ShortcutsSetting.vue'),
-    meta: {
-      menu: {
-        label: '快捷键',
-        icon: 'i-z-keyboard'
-      }
-    }
-  },
-  {
-    path: '/plugins',
-    name: 'Plugins',
-    component: () => import('@/views/PluginsSetting/PluginsSetting.vue'),
-    meta: {
-      menu: {
-        label: '已安装插件',
-        icon: 'i-z-plugin'
-      }
-    }
+    component: () => import('@/views/ShortcutsSetting/ShortcutsSetting.vue')
   },
   {
     path: '/providers',
@@ -81,46 +69,22 @@ const homeRoutes: MenuRouterItemType[] = [
   {
     path: '/data',
     name: 'Data',
-    component: () => import('@/views/DataSetting/DataSetting.vue'),
-    meta: {
-      menu: {
-        label: '我的数据',
-        icon: 'i-z-database'
-      }
-    }
+    component: () => import('@/views/DataSetting/DataSetting.vue')
   },
   {
     path: '/allCommands',
     name: 'AllCommands',
-    component: () => import('@/views/AllCommandsSetting/AllCommandsSetting.vue'),
-    meta: {
-      menu: {
-        label: '所有指令',
-        icon: 'i-z-list'
-      }
-    }
+    component: () => import('@/views/AllCommandsSetting/AllCommandsSetting.vue')
   },
   {
     path: '/localLaunch',
     name: 'LocalLaunch',
-    component: () => import('@/views/LocalLaunchSetting/LocalLaunchSetting.vue'),
-    meta: {
-      menu: {
-        label: '本地启动',
-        icon: 'i-z-folder'
-      }
-    }
+    component: () => import('@/views/LocalLaunchSetting/LocalLaunchSetting.vue')
   },
   {
     path: '/sync',
     name: 'Sync',
-    component: () => import('@/views/SyncSetting/SyncSetting.vue'),
-    meta: {
-      menu: {
-        label: '数据同步',
-        icon: 'i-z-cloud'
-      }
-    }
+    component: () => import('@/views/SyncSetting/SyncSetting.vue')
   },
   {
     path: '/debug',
@@ -135,13 +99,7 @@ const homeRoutes: MenuRouterItemType[] = [
   {
     path: '/about',
     name: 'About',
-    component: () => import('@/views/AboutSetting/AboutSetting.vue'),
-    meta: {
-      menu: {
-        label: '关于',
-        icon: 'i-z-info'
-      }
-    }
+    component: () => import('@/views/AboutSetting/AboutSetting.vue')
   },
   {
     path: '/account',

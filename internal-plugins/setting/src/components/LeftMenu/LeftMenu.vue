@@ -1,31 +1,23 @@
 <script setup lang="ts">
 import defaultAvatar from '@/assets/image/default.png'
-import { AccountLoginDialog, useToast } from '@/components'
 import {
   ACCOUNT_CHANGED_EVENT,
   ONLINE_SYNC_SERVER_URL,
-  loginZToolsAccount,
-  notifyAccountChanged,
-  promptDefaultDataImportAfterLogin
+  notifyAccountChanged
 } from '@/composables/useZToolsAccount'
 import { MenuRouterItemType } from '@/router'
-import { computed, onBeforeUnmount, onMounted, ref } from 'vue'
-import { useNotificationCenter } from '@/composables'
+import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 
 const router = useRouter()
 const route = useRoute()
-const { success, error, warning, confirm } = useToast()
-const { unreadCount, unreadLabel } = useNotificationCenter()
 
 const menuRoutes = ref<MenuRouterItemType[]>([] as MenuRouterItemType[])
 const loggedIn = ref(false)
 const username = ref('')
 const nickname = ref('')
 const avatar = ref(defaultAvatar)
-const loginVisible = ref(false)
-const loggingIn = ref(false)
-const loginUsername = ref('')
+const showSettingsMenu = ref(false)
 let accountLoadVersion = 0
 let stopSyncStatusListener: (() => void) | null = null
 
@@ -38,14 +30,54 @@ interface AccountProfileCache {
 
 const displayName = computed(() => nickname.value || username.value || 'seaman 用户')
 
+// 设置菜单项
+const settingsMenus = [
+  { name: 'Account', label: '个人中心', icon: 'i-z-user' },
+  { name: 'GeneralSetting', label: '通用设置', icon: 'i-z-settings' },
+  { name: 'Data', label: '我的数据', icon: 'i-z-database' },
+  { name: 'Sync', label: '数据同步', icon: 'i-z-cloud' },
+  { name: 'About', label: '关于', icon: 'i-z-info' }
+]
+
+// 个人中心相关路由
+const accountRoutes = ['Account', 'GeneralSetting', 'Data', 'Sync', 'About']
+
+// 监听路由变化，离开个人中心路由时恢复主菜单
+watch(
+  () => route.name,
+  (name) => {
+    if (!accountRoutes.includes(name as string)) {
+      showSettingsMenu.value = false
+    }
+  }
+)
+
 /**
  * 切换右侧设置页面。
  * @param item 要切换到的菜单路由项
  * @returns 无返回值
  */
 const setActiveMenu = (item: MenuRouterItemType): void => {
-  // 菜单导航直接替换右侧路由内容。
+  showSettingsMenu.value = false
   router.replace({ name: item.name })
+}
+
+/**
+ * 切换到设置页面。
+ * @param item 设置菜单项
+ * @returns 无返回值
+ */
+const setActiveSetting = (item: { name: string }): void => {
+  router.replace({ name: item.name })
+}
+
+/**
+ * 返回主菜单（插件市场）。
+ * @returns 无返回值
+ */
+const backToMain = (): void => {
+  showSettingsMenu.value = false
+  router.replace({ name: 'Market' })
 }
 
 // 自动加载路由
@@ -186,62 +218,20 @@ async function refreshProfile(
 }
 
 /**
- * 根据当前登录状态打开个人中心路由或登录对话框。
+ * 跳转到个人中心页面。
  * @returns 无返回值
  */
 function openAccount(): void {
-  if (loggedIn.value) {
-    // 已登录账号直接切换右侧路由内容，不创建覆盖层。
-    void router.replace({ name: 'Account' })
-  } else {
-    // 未登录时仍需通过对话框完成账号认证。
-    loginVisible.value = true
-  }
-}
-
-/**
- * 打开设置插件内的消息中心。
- * @returns 无返回值。
- */
-function openNotifications(): void {
-  void router.replace({ name: 'Notifications' })
-}
-
-async function submitLogin(
-  payload: { username: string; password: string; captchaVerifyParam?: string },
-  controls?: { resolve: () => void; reject: (error: unknown) => void }
-): Promise<void> {
-  if (!payload.username || !payload.password) {
-    warning('请填写用户名和密码')
-    controls?.reject(new Error('请填写用户名和密码'))
-    return
-  }
-  loggingIn.value = true
-  try {
-    const result = await loginZToolsAccount(payload)
-    controls?.resolve()
-    loginVisible.value = false
-    loginUsername.value = payload.username
-    if (result.isNew) {
-      success(`欢迎加入 seaman，${payload.username}！账号已创建`)
-    } else {
-      success('登录成功')
-    }
-    await promptDefaultDataImportAfterLogin({ confirm, success, error })
-    await loadAccount()
-  } catch (err: any) {
-    controls?.reject(err)
-    error(err?.message || '登录失败')
-  } finally {
-    loggingIn.value = false
-  }
+  showSettingsMenu.value = true
+  void router.replace({ name: 'Account' })
 }
 </script>
 
 <template>
   <!-- 左侧菜单 -->
   <div class="settings-sidebar">
-    <div class="menu-list">
+    <!-- 默认菜单：插件市场、已安装插件 -->
+    <div v-if="!showSettingsMenu" class="menu-list">
       <div
         v-for="menuRoute in menuRoutes"
         :key="menuRoute.name"
@@ -254,11 +244,27 @@ async function submitLogin(
       </div>
     </div>
 
+    <!-- 个人中心菜单：设置项 -->
+    <div v-else class="menu-list">
+      <div
+        v-for="item in settingsMenus"
+        :key="item.name"
+        class="menu-item"
+        :class="{ active: route.name === item.name }"
+        @click="setActiveSetting(item)"
+      >
+        <div :class="item.icon" class="menu-icon" style="font-size: 18px" />
+        <span class="menu-label">{{ item.label }}</span>
+      </div>
+    </div>
+
     <div
       class="sidebar-footer"
-      :class="{ active: route.name === 'Account' || route.name === 'Notifications' }"
+      :class="{ active: showSettingsMenu ? false : route.name === 'Account' }"
     >
+      <!-- 主菜单：显示个人中心 -->
       <button
+        v-if="!showSettingsMenu"
         class="account-dock"
         :class="{ active: route.name === 'Account' }"
         type="button"
@@ -269,28 +275,21 @@ async function submitLogin(
           <div class="i-z-cloud" />
         </div>
         <div class="account-info">
-          <strong>{{ loggedIn ? displayName : '注册/登录 seaman' }}</strong>
-          <span>{{ loggedIn ? '查看个人中心' : '同步数据与评论互动' }}</span>
+          <strong>{{ loggedIn ? displayName : '个人中心' }}</strong>
+          <span>{{ loggedIn ? '查看个人中心' : '管理账号与设置' }}</span>
         </div>
       </button>
-      <button
-        class="notification-dock"
-        :class="{ active: route.name === 'Notifications' }"
-        type="button"
-        title="消息中心"
-        @click="openNotifications"
-      >
-        <div class="i-z-bell" />
-        <span v-if="unreadCount > 0" class="notification-badge">{{ unreadLabel }}</span>
+      <!-- 个人中心菜单：显示插件市场 -->
+      <button v-else class="account-dock" type="button" @click="backToMain">
+        <div class="account-avatar account-placeholder">
+          <div class="i-z-store" />
+        </div>
+        <div class="account-info">
+          <strong>插件市场</strong>
+          <span>返回主菜单</span>
+        </div>
       </button>
     </div>
-
-    <AccountLoginDialog
-      v-model:visible="loginVisible"
-      :username="loginUsername"
-      :loading="loggingIn"
-      @submit="submitLogin"
-    />
   </div>
 </template>
 
@@ -370,52 +369,6 @@ async function submitLogin(
 
 .sidebar-footer:not(.active):hover {
   background: var(--hover-bg);
-}
-
-.notification-dock {
-  position: relative;
-  flex: none;
-  width: 38px;
-  height: 38px;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  border: 0;
-  border-radius: 8px;
-  background: transparent;
-  color: var(--text-secondary);
-  cursor: pointer;
-  font-size: 18px;
-}
-
-.notification-dock:hover {
-  background: transparent;
-  color: var(--text-color);
-}
-
-.notification-dock.active {
-  background: transparent;
-  color: var(--primary-color);
-}
-
-.notification-badge {
-  position: absolute;
-  top: 1px;
-  right: 0;
-  min-width: 15px;
-  height: 15px;
-  box-sizing: border-box;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  border: 2px solid var(--bg-color);
-  border-radius: 8px;
-  background: #ef4444;
-  color: white;
-  padding: 0 3px;
-  font-size: 8px;
-  font-weight: 700;
-  line-height: 1;
 }
 
 .account-dock:hover {
