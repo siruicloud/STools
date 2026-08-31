@@ -475,11 +475,11 @@ export class PluginMarketAPI {
       const timestamp = Date.now()
       const platform = process.platform
 
-      console.log('[Plugins] 从 ZTools 插件市场获取列表...', marketApiBase)
+      console.log('[Plugins] 从 ZTools 插件市场获取列表...')
 
       const [marketResponse, recommendations] = await Promise.all([
         httpGet(
-          `${marketApiBase}/plugins?limit=${PLUGIN_MARKET_RECOMMEND_LIMIT}&platform=${encodeURIComponent(platform)}&t=${timestamp}`
+          `${marketApiBase}/plugin/market?limit=${PLUGIN_MARKET_RECOMMEND_LIMIT}&platform=${encodeURIComponent(platform)}&t=${timestamp}`
         ),
         this.fetchPluginMarketRecommendations(PLUGIN_MARKET_RECOMMEND_LIMIT).catch((error) => {
           console.warn('[Plugins] 获取推荐插件失败，将仅使用市场聚合数据:', error)
@@ -775,8 +775,14 @@ export class PluginMarketAPI {
   }
 
   private parseMarketPluginsResponse(value: unknown): MarketPluginsResponse {
-    const data = typeof value === 'string' ? JSON.parse(value) : value
-    return data && typeof data === 'object' ? (data as MarketPluginsResponse) : {}
+    const raw = typeof value === 'string' ? JSON.parse(value) : value
+    if (!raw || typeof raw !== 'object') return {}
+
+    const data = raw as { code?: number; data?: unknown }
+    if (data.code === 1 && data.data) {
+      return data.data as MarketPluginsResponse
+    }
+    return raw as MarketPluginsResponse
   }
 
   private parseCommentPage(value: unknown): PluginMarketCommentPage {
@@ -928,6 +934,10 @@ export class PluginMarketAPI {
       for (const plugin of category.plugins || []) {
         pushPlugin(plugin)
       }
+    }
+
+    for (const plugin of marketData.latest || []) {
+      pushPlugin(plugin)
     }
 
     return [...byName.values()]
