@@ -1469,51 +1469,18 @@ onUnmounted(() => {
 
       <div class="setting-item">
         <div class="setting-label">
-          <span>呼出快捷键</span>
-          <span class="setting-desc">设置全局快捷键来呼出应用</span>
+          <span>显示悬浮球</span>
+          <span class="setting-desc">在桌面显示一个置顶悬浮球，点击可快速启动/隐藏主界面</span>
         </div>
         <div class="setting-control">
-          <HotkeyInput v-model="hotkey" :platform="platform" @change="handleHotkeyChange" />
-          <div class="quick-actions-wrapper">
-            <button
-              type="button"
-              class="icon-btn quick-actions-trigger"
-              :class="{ active: showHotkeyQuickActions }"
-              title="快捷设置"
-              @click.stop="toggleHotkeyQuickActions"
-            >
-              <div class="i-z-settings font-size-16px" />
-            </button>
-            <Transition name="dropdown">
-              <div v-if="showHotkeyQuickActions" class="quick-actions-dropdown" @click.stop>
-                <button
-                  v-for="preset in hotkeyPresets"
-                  :key="preset.value"
-                  type="button"
-                  class="quick-actions-item"
-                  :class="{ active: hotkey === preset.value }"
-                  @click="handleHotkeyPresetSelect(preset.value)"
-                >
-                  <div class="quick-actions-item-info">
-                    <span class="quick-actions-item-label">{{ preset.label }}</span>
-                    <span class="quick-actions-item-desc">快速应用该快捷键预设</span>
-                  </div>
-                </button>
-                <button
-                  type="button"
-                  class="quick-actions-item quick-actions-item-reset"
-                  @click="handleHotkeyResetClick"
-                >
-                  <div class="quick-actions-item-info">
-                    <span class="quick-actions-item-label">重置</span>
-                    <span class="quick-actions-item-desc"
-                      >恢复为默认快捷键 {{ defaultHotkey }}</span
-                    >
-                  </div>
-                </button>
-              </div>
-            </Transition>
-          </div>
+          <label class="toggle">
+            <input
+              v-model="floatingBallEnabled"
+              type="checkbox"
+              @change="handleFloatingBallChange"
+            />
+            <span class="toggle-slider"></span>
+          </label>
         </div>
       </div>
 
@@ -2297,89 +2264,6 @@ onUnmounted(() => {
       </div>
     </div>
 
-    <!-- ==================== 悬浮球 ==================== -->
-    <div class="setting-group">
-      <h3 class="setting-group-title">悬浮球</h3>
-
-      <div class="setting-item">
-        <div class="setting-label">
-          <span>显示悬浮球</span>
-          <span class="setting-desc"
-            >在桌面显示一个置顶悬浮球，点击可快速启动/隐藏主界面，支持拖入文件到悬浮球</span
-          >
-        </div>
-        <div class="setting-control">
-          <label class="toggle">
-            <input
-              v-model="floatingBallEnabled"
-              type="checkbox"
-              @change="handleFloatingBallChange"
-            />
-            <span class="toggle-slider"></span>
-          </label>
-        </div>
-      </div>
-
-      <div v-if="floatingBallEnabled" class="setting-item">
-        <div class="setting-label">
-          <span>悬浮球文字</span>
-          <span class="setting-desc">自定义悬浮球上显示的文字，默认为 Z</span>
-        </div>
-        <div class="setting-control">
-          <input
-            v-model="floatingBallLetter"
-            type="text"
-            class="input"
-            placeholder="Z"
-            maxlength="2"
-            style="width: 60px; text-align: center"
-            @blur="handleFloatingBallLetterChange"
-            @keyup.enter="handleFloatingBallLetterChange"
-          />
-        </div>
-      </div>
-
-      <div v-if="floatingBallEnabled" class="setting-item">
-        <div class="setting-label">
-          <span>悬浮球双击目标指令</span>
-          <span class="setting-desc"
-            >配置后双击悬浮球可直接进入对应指令，常用于快速打开 AI 对话等场景</span
-          >
-        </div>
-        <div class="setting-control">
-          <input
-            v-model="floatingBallDoubleClickCommand"
-            type="text"
-            class="input"
-            placeholder="例如：AI助手/对话"
-            @blur="handleFloatingBallDoubleClickChange"
-            @keyup.enter="handleFloatingBallDoubleClickChange"
-          />
-          <button
-            v-if="floatingBallDoubleClickCommand"
-            class="btn btn-icon"
-            title="清除"
-            @click="handleClearFloatingBallDoubleClick"
-          >
-            <svg
-              width="20"
-              height="20"
-              viewBox="0 0 20 20"
-              fill="none"
-              xmlns="http://www.w3.org/2000/svg"
-            >
-              <path
-                d="M6 6L14 14M14 6L6 14"
-                stroke="currentColor"
-                stroke-width="1.5"
-                stroke-linecap="round"
-              />
-            </svg>
-          </button>
-        </div>
-      </div>
-    </div>
-
     <!-- ==================== 网络 ==================== -->
     <div class="setting-group">
       <h3 class="setting-group-title">网络</h3>
@@ -2411,87 +2295,6 @@ onUnmounted(() => {
             @blur="handleProxyUrlChange"
             @keyup.enter="handleProxyUrlChange"
           />
-        </div>
-      </div>
-    </div>
-
-    <!-- ==================== 开发者 ==================== -->
-    <div class="setting-group">
-      <h3 class="setting-group-title">开发者</h3>
-
-      <div class="setting-item">
-        <div class="setting-label">
-          <span>开发者工具位置</span>
-          <span class="setting-desc">设置插件开发者工具的默认打开位置</span>
-        </div>
-        <div class="setting-control">
-          <Dropdown
-            v-model="devToolsMode"
-            :options="devToolsModeOptions"
-            style="min-width: 200px"
-            @change="handleDevToolsModeChange"
-          />
-        </div>
-      </div>
-
-      <div class="setting-item internal-api-setting">
-        <div class="internal-api-content">
-          <div class="internal-api-header">
-            <div class="setting-label">
-              <span>内部 API 授权插件</span>
-              <span class="setting-desc">允许指定插件名称调用高权限内部 API</span>
-            </div>
-            <div class="setting-control internal-api-control">
-              <input
-                v-model="customInternalApiPluginNameInput"
-                type="text"
-                class="input internal-api-input"
-                placeholder="输入插件 name"
-                @keyup.enter="handleAddCustomInternalApiPluginName"
-              />
-              <button
-                class="btn btn-sm internal-api-add-btn"
-                @click="handleAddCustomInternalApiPluginName"
-              >
-                添加
-              </button>
-            </div>
-          </div>
-          <div v-if="customInternalApiPluginNames.length > 0" class="blocked-apps-tags">
-            <span
-              v-for="(pluginName, index) in customInternalApiPluginNames"
-              :key="pluginName"
-              class="blocked-app-tag"
-            >
-              {{ pluginName }}
-              <button
-                class="blocked-app-remove"
-                title="删除授权"
-                @click="handleRemoveCustomInternalApiPluginName(index)"
-              >
-                &times;
-              </button>
-            </span>
-          </div>
-        </div>
-      </div>
-
-      <div class="setting-item">
-        <div class="setting-label">
-          <span>关闭 GPU 加速</span>
-          <span class="setting-desc"
-            >禁用硬件加速渲染，可解决白屏、渲染异常等 GPU 兼容性问题，修改后需重启应用生效</span
-          >
-        </div>
-        <div class="setting-control">
-          <label class="toggle">
-            <input
-              v-model="disableGpuAcceleration"
-              type="checkbox"
-              @change="handleDisableGpuAccelerationChange"
-            />
-            <span class="toggle-slider"></span>
-          </label>
         </div>
       </div>
     </div>
