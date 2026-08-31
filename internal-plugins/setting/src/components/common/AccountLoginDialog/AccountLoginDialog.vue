@@ -15,12 +15,13 @@
 
     <form class="login-form" @submit.prevent="handleSubmit">
       <label>
-        <span>用户名</span>
+        <span>邮箱</span>
         <input
           v-model.trim="form.username"
-          type="text"
-          autocomplete="username"
-          placeholder="输入用户名"
+          type="email"
+          autocomplete="email"
+          placeholder="输入邮箱"
+          maxlength="50"
         />
       </label>
       <label>
@@ -29,7 +30,9 @@
           v-model="form.password"
           type="password"
           autocomplete="current-password"
-          placeholder="输入密码"
+          placeholder="8-20位密码"
+          minlength="8"
+          maxlength="20"
         />
       </label>
       <div v-if="passwordStrength.label" class="password-strength" aria-live="polite">
