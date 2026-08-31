@@ -1417,7 +1417,7 @@ class WindowManager {
         path: settingPlugin.path,
         type: 'plugin',
         featureCode: 'main',
-        name: '设置'
+        name: '插件中心'
       })
 
       if (!result.success) {
