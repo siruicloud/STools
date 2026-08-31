@@ -1,5 +1,5 @@
 import type { PluginManager } from '../../managers/pluginManager'
-import { ipcMain, type WebContents } from 'electron'
+import { ipcMain, webContents, type WebContents } from 'electron'
 import path from 'path'
 import { pathToFileURL } from 'url'
 import { removePluginArtifact } from '../../utils/pluginStorage.js'
@@ -282,14 +282,6 @@ export class PluginsAPI {
         return { success: false, error: error instanceof Error ? error.message : '获取失败' }
       }
     })
-
-    ipcMain.handle(
-      'install-plugin-from-npm',
-      (_event, options: { packageName: string; useChinaMirror?: boolean }) =>
-        this.installer.installPluginFromNpm(options.packageName, options.useChinaMirror)
-    )
-
-    ipcMain.handle('export-all-plugins', () => this.installer.exportAllPlugins())
   }
 
   /**
@@ -691,6 +683,14 @@ export class PluginsAPI {
   private notifyPluginsChanged(): void {
     this.commandsCacheInvalidator?.()
     this.mainWindow?.webContents.send('plugins-changed')
+
+    // 内置插件运行在独立 WebContentsView，需要额外发送事件
+    const allContents = webContents.getAllWebContents()
+    for (const contents of allContents) {
+      if (contents !== this.mainWindow?.webContents && !contents.isDestroyed()) {
+        contents.send('plugins-changed')
+      }
+    }
   }
 
   /**

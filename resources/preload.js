@@ -991,8 +991,6 @@ window.ztools = {
         electron.ipcRenderer.removeListener('plugin-market-download-progress', handler)
       }
     },
-    installPluginFromNpm: async (options) =>
-      await electron.ipcRenderer.invoke('internal:install-plugin-from-npm', options),
     getPluginReadme: async (pluginPathOrName, pluginName) =>
       await electron.ipcRenderer.invoke('internal:get-plugin-readme', pluginPathOrName, pluginName),
     getPluginDocKeys: async (pluginRef) =>
@@ -1007,7 +1005,6 @@ window.ztools = {
       await electron.ipcRenderer.invoke('internal:get-plugin-data-stats'),
     clearPluginData: async (pluginRef) =>
       await electron.ipcRenderer.invoke('internal:clear-plugin-data', pluginRef),
-    exportAllPlugins: async () => await electron.ipcRenderer.invoke('internal:export-all-plugins'),
     getPluginMemoryInfo: async (pluginPath) =>
       await electron.ipcRenderer.invoke('internal:get-plugin-memory-info', pluginPath),
 
@@ -1167,6 +1164,9 @@ window.ztools = {
       await electron.ipcRenderer.invoke('sync:test-connection', config),
     syncGetCaptchaConfig: async (params) =>
       await electron.ipcRenderer.invoke('sync:get-captcha-config', params),
+    syncSendEmailCode: async (params) =>
+      await electron.ipcRenderer.invoke('sync:send-email-code', params),
+    syncRegister: async (params) => await electron.ipcRenderer.invoke('sync:register', params),
     syncLogin: async (params) => await electron.ipcRenderer.invoke('sync:login', params),
     syncSaveConfig: async (config) => await electron.ipcRenderer.invoke('sync:save-config', config),
     syncGetConfig: async () => await electron.ipcRenderer.invoke('sync:get-config'),
@@ -1245,6 +1245,11 @@ window.ztools = {
       }
       electron.ipcRenderer.on('command-aliases-changed', handler)
       return () => electron.ipcRenderer.removeListener('command-aliases-changed', handler)
+    },
+    onPluginsChanged: (callback) => {
+      const handler = (_event) => callback()
+      electron.ipcRenderer.on('plugins-changed', handler)
+      return () => electron.ipcRenderer.removeListener('plugins-changed', handler)
     },
 
     // ==================== 其他 API ====================

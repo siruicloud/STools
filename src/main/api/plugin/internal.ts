@@ -506,19 +506,6 @@ export class InternalPluginAPI {
     )
 
     ipcMain.handle(
-      'internal:install-plugin-from-npm',
-      async (event, options: { packageName: string; useChinaMirror?: boolean }) => {
-        if (!requireInternalPlugin(this.pluginManager, event)) {
-          throw new PermissionDeniedError('internal:install-plugin-from-npm')
-        }
-        return await pluginsAPI.installer.installPluginFromNpm(
-          options.packageName,
-          options.useChinaMirror
-        )
-      }
-    )
-
-    ipcMain.handle(
       'internal:get-plugin-readme',
       async (event, pluginPathOrName: string, pluginName?: string) => {
         if (!requireInternalPlugin(this.pluginManager, event)) {
@@ -599,13 +586,6 @@ export class InternalPluginAPI {
         throw new PermissionDeniedError('internal:clear-plugin-data')
       }
       return await databaseAPI.clearPluginData(pluginName)
-    })
-
-    ipcMain.handle('internal:export-all-plugins', async (event) => {
-      if (!requireInternalPlugin(this.pluginManager, event)) {
-        throw new PermissionDeniedError('internal:export-all-plugins')
-      }
-      return await pluginsAPI.installer.exportAllPlugins()
     })
 
     ipcMain.handle('internal:get-plugin-memory-info', async (event, pluginPath: string) => {
