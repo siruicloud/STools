@@ -439,6 +439,10 @@ async function downloadPlugin(plugin: Plugin): Promise<void> {
       if (result.plugin && result.plugin.path) {
         plugin.path = result.plugin.path
       }
+      console.log(`[PluginMarket] ${plugin.name} 安装成功`)
+      success(`${plugin.title || plugin.name} 安装成功`)
+      // 刷新已安装插件列表
+      fetchPlugins()
     } else if (result.cancelled) {
       clearDownloadState(plugin.name)
     } else {
@@ -488,6 +492,72 @@ function handleBannerClick(item: BannerItem): void {
   if (!item.url) return
   void window.ztools.hideMainWindow(false)
   window.ztools.shellOpenExternal(item.url)
+}
+
+// Banner 触摸滑动支持
+const bannerTouchState = ref<{
+  startX: number
+  startY: number
+  startTime: number
+  sectionKey: string | null
+}>({
+  startX: 0,
+  startY: 0,
+  startTime: 0,
+  sectionKey: null
+})
+
+function handleBannerTouchStart(event: TouchEvent, section: StorefrontSection): void {
+  if (!section.items?.length || section.items.length <= 1) return
+  const touch = event.touches[0]
+  bannerTouchState.value = {
+    startX: touch.clientX,
+    startY: touch.clientY,
+    startTime: Date.now(),
+    sectionKey: section.key
+  }
+}
+
+function handleBannerTouchMove(event: TouchEvent, section: StorefrontSection): void {
+  // 阻止页面滚动
+  if (bannerTouchState.value.sectionKey === section.key) {
+    const touch = event.touches[0]
+    const deltaX = Math.abs(touch.clientX - bannerTouchState.value.startX)
+    const deltaY = Math.abs(touch.clientY - bannerTouchState.value.startY)
+    if (deltaX > deltaY) {
+      event.preventDefault()
+    }
+  }
+}
+
+function handleBannerTouchEnd(event: TouchEvent, section: StorefrontSection): void {
+  if (bannerTouchState.value.sectionKey !== section.key) return
+  if (!section.items?.length || section.items.length <= 1) return
+
+  const touch = event.changedTouches[0]
+  const deltaX = touch.clientX - bannerTouchState.value.startX
+  const deltaTime = Date.now() - bannerTouchState.value.startTime
+  const count = section.items.length
+  const currentIndex = getBannerActiveIndex(section)
+
+  // 滑动距离 > 50px 且时间 < 500ms 判定为有效滑动
+  if (Math.abs(deltaX) > 50 && deltaTime < 500) {
+    if (deltaX > 0) {
+      // 向右滑动，显示上一张
+      setBannerActiveIndex(section, currentIndex - 1)
+    } else {
+      // 向左滑动，显示下一张
+      setBannerActiveIndex(section, currentIndex + 1)
+    }
+  }
+
+  // 重置状态
+  bannerTouchState.value = {
+    startX: 0,
+    startY: 0,
+    startTime: 0,
+    sectionKey: null
+  }
 }
 
 function getBannerActiveIndex(section: StorefrontSection): number {
@@ -627,11 +697,9 @@ onUnmounted(() => {
               :key="plugin.name"
               :plugin="plugin"
               :installing-plugin="installingPlugin"
-              :download-state="downloadStates[plugin.name]"
               :can-upgrade="canUpgrade(plugin)"
               @click="openPluginDetail(plugin)"
               @open="handleOpenPlugin(plugin)"
-              @download="downloadPlugin(plugin)"
               @upgrade="handleUpgradePlugin(plugin)"
             />
           </div>
@@ -643,7 +711,13 @@ onUnmounted(() => {
             <template v-for="section in storefrontSections" :key="section.key">
               <!-- Banner 区块 -->
               <div v-if="section.type === 'banner'" class="storefront-banner">
-                <div v-if="(section.items?.length || 0) > 0" class="banner-stage">
+                <div
+                  v-if="(section.items?.length || 0) > 0"
+                  class="banner-stage"
+                  @touchstart="handleBannerTouchStart($event, section)"
+                  @touchmove="handleBannerTouchMove($event, section)"
+                  @touchend="handleBannerTouchEnd($event, section)"
+                >
                   <button
                     v-for="(item, idx) in section.items"
                     :key="`${section.key}-${idx}-${item.image}`"
@@ -658,6 +732,41 @@ onUnmounted(() => {
                     @click="handleBannerClick(item)"
                   >
                     <img :src="item.image" alt="" class="banner-image" draggable="false" />
+                  </button>
+                  <!-- 左右箭头 -->
+                  <button
+                    v-if="(section.items?.length || 0) > 1"
+                    class="banner-arrow banner-arrow-left"
+                    type="button"
+                    aria-label="上一张"
+                    @click.stop="setBannerActiveIndex(section, getBannerActiveIndex(section) - 1)"
+                  >
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
+                      <path
+                        d="M15 18L9 12L15 6"
+                        stroke="currentColor"
+                        stroke-width="2"
+                        stroke-linecap="round"
+                        stroke-linejoin="round"
+                      />
+                    </svg>
+                  </button>
+                  <button
+                    v-if="(section.items?.length || 0) > 1"
+                    class="banner-arrow banner-arrow-right"
+                    type="button"
+                    aria-label="下一张"
+                    @click.stop="setBannerActiveIndex(section, getBannerActiveIndex(section) + 1)"
+                  >
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
+                      <path
+                        d="M9 18L15 12L9 6"
+                        stroke="currentColor"
+                        stroke-width="2"
+                        stroke-linecap="round"
+                        stroke-linejoin="round"
+                      />
+                    </svg>
                   </button>
                 </div>
                 <div v-if="(section.items?.length || 0) > 1" class="banner-dots">
@@ -710,11 +819,9 @@ onUnmounted(() => {
                     :key="plugin.name"
                     :plugin="plugin"
                     :installing-plugin="installingPlugin"
-                    :download-state="downloadStates[plugin.name]"
                     :can-upgrade="canUpgrade(plugin)"
                     @click="openPluginDetail(plugin)"
                     @open="handleOpenPlugin(plugin)"
-                    @download="downloadPlugin(plugin)"
                     @upgrade="handleUpgradePlugin(plugin)"
                   />
                 </div>
@@ -749,11 +856,9 @@ onUnmounted(() => {
               :key="plugin.name"
               :plugin="plugin"
               :installing-plugin="installingPlugin"
-              :download-state="downloadStates[plugin.name]"
               :can-upgrade="canUpgrade(plugin)"
               @click="openPluginDetail(plugin)"
               @open="handleOpenPlugin(plugin)"
-              @download="downloadPlugin(plugin)"
               @upgrade="handleUpgradePlugin(plugin)"
             />
           </div>
@@ -912,6 +1017,43 @@ onUnmounted(() => {
   display: block;
   border-radius: 12px;
   object-fit: cover;
+}
+
+.banner-arrow {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 36px;
+  height: 36px;
+  border: 0;
+  border-radius: 50%;
+  background: rgba(0, 0, 0, 0.4);
+  color: #fff;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0;
+  transition:
+    opacity 0.2s,
+    background 0.2s;
+  z-index: 10;
+}
+
+.banner-stage:hover .banner-arrow {
+  opacity: 1;
+}
+
+.banner-arrow:hover {
+  background: rgba(0, 0, 0, 0.6);
+}
+
+.banner-arrow-left {
+  left: 12px;
+}
+
+.banner-arrow-right {
+  right: 12px;
 }
 
 .banner-dots {
