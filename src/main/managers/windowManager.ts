@@ -589,7 +589,7 @@ class WindowManager {
     this.tray = new Tray(icon)
 
     // 设置托盘提示文字
-    this.tray.setToolTip('seaman')
+    this.tray.setToolTip('Seaman Team')
 
     // 创建右键菜单
     this.createTrayMenu()

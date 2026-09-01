@@ -1,0 +1,4 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100">
+  <defs><linearGradient id="g22" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" style="stop-color:#B48EAD"/><stop offset="100%" style="stop-color:#8FBCBB"/></linearGradient></defs>
+  <polygon fill="url(#g22)" points="50,5 75,35 75,75 50,95 25,75 25,35"/>
+</svg>

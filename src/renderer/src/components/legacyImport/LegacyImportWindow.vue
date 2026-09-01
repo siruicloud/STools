@@ -3,8 +3,8 @@
     <div class="header window-drag-region">
       <img :src="logo" class="header-icon" draggable="false" />
       <div class="header-info">
-        <div class="title">检测到旧版本 seaman 数据</div>
-        <div class="subtitle">seaman 3.0 数据初始化</div>
+        <div class="title">检测到旧版本 Seaman Team 数据</div>
+        <div class="subtitle">Seaman Team 3.0 数据初始化</div>
       </div>
     </div>
 
@@ -36,7 +36,9 @@
           <input v-model="mode" type="radio" value="fresh" :disabled="isImporting" />
           <span class="mode-copy">
             <span class="mode-title">全新开始</span>
-            <span class="mode-description">不迁移旧版本数据，使用全新的 seaman 3.0 数据。</span>
+            <span class="mode-description"
+              >不迁移旧版本数据，使用全新的 Seaman Team 3.0 数据。</span
+            >
           </span>
         </label>
       </div>

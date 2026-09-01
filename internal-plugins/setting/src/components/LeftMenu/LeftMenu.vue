@@ -28,7 +28,7 @@ interface AccountProfileCache {
   updatedAt: number
 }
 
-const displayName = computed(() => nickname.value || username.value || 'seaman 用户')
+const displayName = computed(() => nickname.value || username.value || 'Seaman Team 用户')
 
 // 设置菜单项
 const settingsMenus = [

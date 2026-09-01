@@ -44,7 +44,7 @@ async function handleCheckUpdate(): Promise<void> {
     const result = await window.ztools.internal.updaterCheckUpdate()
     if (result.migrationRequired) {
       const shouldOpenRelease = await confirm({
-        title: '需要更新 seaman',
+        title: '需要更新 Seaman Team',
         message:
           '当前版本使用的是较早的更新方式，请安装一次最新完整版本。您的数据、设置和插件都会保留。',
         type: 'info',
@@ -199,11 +199,11 @@ async function handleReceiveBetaUpdatesChange(): Promise<void> {
     <div class="about-container">
       <!-- Logo -->
       <div class="about-logo">
-        <img src="/logo.png" alt="seaman" draggable="false" />
+        <img src="/logo.png" alt="Seaman Team" draggable="false" />
       </div>
 
       <!-- 应用名称 -->
-      <h1 class="about-title">seaman</h1>
+      <h1 class="about-title">Seaman Team</h1>
 
       <!-- 版本号 -->
       <div class="about-version">v{{ appVersion }}</div>
@@ -342,7 +342,7 @@ async function handleReceiveBetaUpdatesChange(): Promise<void> {
 
       <!-- 版权信息 -->
       <div class="about-copyright">
-        Copyright &copy; 2025-{{ currentYear }} seaman. All rights reserved.
+        Copyright © 2025-{{ currentYear }} Seaman Team. All rights reserved. All rights reserved.
       </div>
     </div>
   </div>
