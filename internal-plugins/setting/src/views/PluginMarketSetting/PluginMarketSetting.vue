@@ -74,6 +74,7 @@ const isLoading = ref(false)
 const installingPlugin = ref<string | null>(null)
 const downloadStates = ref<Record<string, PluginDownloadState | undefined>>({})
 const bannerActiveIndexes = ref<Record<string, number>>({})
+const allowLocalPluginImport = ref(true)
 let stopDownloadProgressListener: (() => void) | undefined
 let bannerTimer: ReturnType<typeof window.setInterval> | undefined
 
@@ -645,7 +646,16 @@ useJumpFunction<PluginMarketSettingJumpFunction>((state) => {
   }
 })
 
-onMounted(() => {
+onMounted(async () => {
+  // 获取环境配置
+  try {
+    const envConfig = await window.ztools.internal.getEnvConfig()
+    if (envConfig?.success && envConfig?.config) {
+      allowLocalPluginImport.value = envConfig.config.allowLocalPluginImport
+    }
+  } catch (e) {
+    console.error('加载环境配置失败:', e)
+  }
   fetchPlugins()
   bannerTimer = window.setInterval(rotateBanners, 5000)
   stopDownloadProgressListener =
@@ -898,6 +908,7 @@ onUnmounted(() => {
         :download-state="downloadStates[selectedPlugin.name]"
         :initial-tab="activeDetailTab"
         :target-comment-id="activeCommentId"
+        :show-folder-button="allowLocalPluginImport"
         @back="closePluginDetail"
         @open="handleOpenPlugin(selectedPlugin)"
         @open-folder="handleOpenFolder(selectedPlugin)"
