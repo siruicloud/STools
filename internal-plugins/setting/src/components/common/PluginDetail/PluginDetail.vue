@@ -26,6 +26,7 @@ const props = withDefaults(
     showSize?: boolean
     showDownloadCount?: boolean
     showMarketButton?: boolean
+    showFolderButton?: boolean
     initialTab?: TabId
   }>(),
   {
@@ -119,6 +120,7 @@ function onSwitchTab(tabId: TabId): void {
         :show-pin-button="showPinButton"
         :show-disable-toggle="showDisableToggle"
         :show-market-button="showMarketButton"
+        :show-folder-button="showFolderButton"
         :show-settings-dropdown="showSettingsDropdown"
         :is-auto-kill="isAutoKill"
         :is-auto-detach="isAutoDetach"

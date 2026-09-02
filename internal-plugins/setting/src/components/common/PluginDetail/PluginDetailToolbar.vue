@@ -9,6 +9,7 @@ defineProps<{
   showPinButton?: boolean
   showDisableToggle?: boolean
   showMarketButton?: boolean
+  showFolderButton?: boolean
   // 设置
   showSettingsDropdown: boolean
   isAutoKill: boolean
@@ -59,6 +60,7 @@ function handleDisabledToggle(event: Event): void {
       <div class="i-z-stop font-size-16px" />
     </button>
     <button
+      v-if="showFolderButton !== false"
       class="icon-btn topbar-action-btn folder-btn"
       title="打开插件目录"
       @click="emit('open-folder')"

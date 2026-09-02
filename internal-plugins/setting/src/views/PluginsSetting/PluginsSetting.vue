@@ -900,6 +900,7 @@ function closeMoreMenu(event?: Event): void {
         :is-pinned="isPluginPinned(selectedPlugin.path)"
         :is-disabled="isPluginDisabled(selectedPlugin.path)"
         :show-market-button="!!selectedPlugin.marketPlugin"
+        :show-folder-button="allowLocalPluginImport"
         @back="closePluginDetail"
         @open="handleOpenPlugin(selectedPlugin)"
         @uninstall="handleUninstallFromDetail(selectedPlugin, $event)"
