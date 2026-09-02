@@ -1,16 +1,15 @@
-# ZTools
+# Seaman
 
 <div align="center">
 
-<img src="./.github/assets/icon.png" alt="ZTools Logo" width="120">
+<img src="./.github/assets/icon.png" alt="Seaman Logo" width="120">
 
 **A High-Performance, Extensible Application Launcher and Plugin Platform**
 
-_Open Source Implementation of uTools | Supports macOS and Windows_
+_support for macOS and Windows_
 
-[![GitHub release](https://img.shields.io/github/v/release/lzx8589561/ZTools)](https://github.com/ZToolsCenter/ZTools/releases)
-[![License](https://img.shields.io/github/license/lzx8589561/ZTools)](./LICENSE)
-[![Platform](https://img.shields.io/badge/platform-macOS%20%7C%20Windows-blue)](https://github.com/ZToolsCenter/ZTools)
+[![GitHub release](https://img.shields.io/github/v/release/siruicloud/STools)](https://github.com/siruicloud/STools/releases)
+[![Platform](https://img.shields.io/badge/platform-macOS%20%7C%20Windows-blue)](https://github.com/siruicloud/STools)
 
 English | [简体中文](./README.md)
 
@@ -250,7 +249,9 @@ When submitting an issue, please include:
 
 ## 📄 License
 
-This project is licensed under the [MIT License](./LICENSE).
+This software is proprietary and closed-source. All rights reserved by Seaman Team.
+
+See [LICENSE](./LICENSE) for details.
 
 ## 💝 Acknowledgments
 

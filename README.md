@@ -1,16 +1,15 @@
-# ZTools
+# Seaman
 
 <div align="center">
 
-<img src="./.github/assets/icon.png" alt="ZTools Logo" width="120">
+<img src="./.github/assets/icon.png" alt="Seaman Logo" width="120">
 
 **一个高性能、可扩展的应用启动器和插件平台**
 
-_uTools 的开源实现 | 支持 macOS 和 Windows_
+_support for macOS and Windows_
 
-[![GitHub release](https://img.shields.io/github/v/release/lzx8589561/ZTools)](https://github.com/ZToolsCenter/ZTools/releases)
-[![License](https://img.shields.io/github/license/lzx8589561/ZTools)](./LICENSE)
-[![Platform](https://img.shields.io/badge/platform-macOS%20%7C%20Windows-blue)](https://github.com/ZToolsCenter/ZTools)
+[![GitHub release](https://img.shields.io/github/v/release/siruicloud/STools)](https://github.com/siruicloud/STools/releases)
+[![Platform](https://img.shields.io/badge/platform-macOS%20%7C%20Windows-blue)](https://github.com/siruicloud/STools)
 
 [English](./README_EN.md) | 简体中文
 
@@ -92,7 +91,7 @@ _uTools 的开源实现 | 支持 macOS 和 Windows_
 
 #### 方式 1：下载预编译版本（推荐）
 
-从 [Releases](https://github.com/ZToolsCenter/ZTools/releases) 页面下载最新版本：
+从 [Releases](https://github.com/siruicloud/STools/releases) 页面下载最新版本：
 
 - **macOS**: `ztools-x.x.x.dmg` 或 `ZTools-x.x.x-arm64-mac.zip`
 - **Windows**: `ztools-x.x.x-setup.exe` 或 `ztools-x.x.x-win.zip`
@@ -101,7 +100,7 @@ _uTools 的开源实现 | 支持 macOS 和 Windows_
 
 ```bash
 # 克隆仓库
-git clone https://github.com/ZToolsCenter/ZTools.git
+git clone https://github.com/siruicloud/STools.git --recurse-submodules
 cd ZTools
 
 # 安装依赖
@@ -184,18 +183,6 @@ ztools/
 - npm >= 9
 - macOS 或 Windows 开发环境
 
-### 代码拉取
-
-1. 先 fork 仓库
-
-- 如果需要贡献代码请 fork [ztools-api-types](https://github.com/ZToolsCenter/ztools-api-types) 和 [ztools-plugin-cli](https://github.com/ZToolsCenter/ztools-plugin-cli) 仓库
-
-2. 拉取完整代码
-
-```bash
-git clone https://github.com/ZToolsCenter/ZTools.git --recurse-submodules
-```
-
 ### 开发命令
 
 ```bash
@@ -251,7 +238,7 @@ pnpm build:unpack       # 打包但不生成安装包（调试用）
 
 ## 🐛 问题反馈
 
-遇到问题？请在 [Issues](https://github.com/ZToolsCenter/ZTools/issues) 中反馈。
+遇到问题？请在 [Issues](https://github.com/siruicloud/STools/issues) 中反馈。
 
 提交 Issue 时请包含：
 
@@ -262,7 +249,9 @@ pnpm build:unpack       # 打包但不生成安装包（调试用）
 
 ## 📄 许可证
 
-本项目采用 [MIT License](./LICENSE) 许可证。
+本软件为闭源商业软件，版权归 Seaman Team 所有。未经授权不得复制、修改或分发。
+
+详见 [LICENSE](./LICENSE) 文件。
 
 ## 💝 致谢
 

@@ -7,10 +7,10 @@
   "homepage": "https://github.com/ZToolsCenter/ZTools",
   "repository": {
     "type": "git",
-    "url": "https://github.com/ZToolsCenter/ZTools.git"
+    "url": "https://github.com/siruicloud/STools.git"
   },
   "bugs": {
-    "url": "https://github.com/ZToolsCenter/ZTools/issues"
+    "url": "https://github.com/siruicloud/STools/issues"
   },
   "license": "MIT",
   "scripts": {
