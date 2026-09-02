@@ -26,7 +26,7 @@ const apiEndpoints: ApiEndpoint[] = [
   {
     method: 'GET',
     path: '/',
-    desc: '服务状态检测，返回 Hello Seaman Team（无需认证）',
+    desc: '服务状态检测，返回 Hello Seaman（无需认证）',
     auth: false
   },
   {
@@ -36,11 +36,11 @@ const apiEndpoints: ApiEndpoint[] = [
     auth: true,
     body: { text: '设置' }
   },
-  { method: 'POST', path: '/api/window/hide', desc: '隐藏 Seaman Team 主窗口', auth: true },
+  { method: 'POST', path: '/api/window/hide', desc: '隐藏 Seaman 主窗口', auth: true },
   {
     method: 'POST',
     path: '/api/window/toggle',
-    desc: '切换 Seaman Team 主窗口显示/隐藏状态',
+    desc: '切换 Seaman 主窗口显示/隐藏状态',
     auth: true
   }
 ]
@@ -170,13 +170,13 @@ onMounted(() => {
 <template>
   <div class="content-panel">
     <h2 class="section-title">HTTP 服务</h2>
-    <p class="section-desc">为第三方应用提供 HTTP API，可远程控制 Seaman Team</p>
+    <p class="section-desc">为第三方应用提供 HTTP API，可远程控制 Seaman</p>
 
     <!-- 启用开关 -->
     <div class="setting-item">
       <div class="setting-label">
         <span>启用 HTTP 服务</span>
-        <span class="setting-desc">开启后第三方应用可通过 HTTP 接口调用 Seaman Team 功能</span>
+        <span class="setting-desc">开启后第三方应用可通过 HTTP 接口调用 Seaman 功能</span>
       </div>
       <label class="toggle">
         <input v-model="enabled" type="checkbox" @change="handleToggle" />

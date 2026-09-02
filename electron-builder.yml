@@ -1,5 +1,5 @@
-appId: com.seamanteam.app
-productName: Seaman Team
+appId: com.seaman.app
+productName: Seaman
 publish:
   provider: github
   owner: siruicloud
@@ -36,12 +36,12 @@ asarUnpack:
   - '**/node_modules/@img/**/*'
 fileAssociations:
   - ext: spk
-    name: Seaman Team Plugin
-    description: Seaman Team Plugin Package
+    name: Seaman Plugin
+    description: Seaman Plugin Package
     role: Viewer
 win:
   compression: maximum
-  executableName: SeamanTeam
+  executableName: Seaman
   artifactName: ${productName}-${version}-${os}-${arch}.${ext}
   target:
     - target: nsis

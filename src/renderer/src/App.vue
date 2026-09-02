@@ -326,7 +326,7 @@ function launchTabTarget(target: string, text: string): void {
 
   if (!matchedCommand) {
     console.warn('[Tab Target] 未找到目标指令:', target)
-    new Notification('Seaman Team', {
+    new Notification('Seaman', {
       body: `未找到 Tab 键目标指令「${target}」，请检查设置中的指令名称是否正确`
     })
     return

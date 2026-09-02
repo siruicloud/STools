@@ -5,7 +5,7 @@
       <img :src="logo" class="header-icon" draggable="false" />
       <div class="header-info">
         <div class="title">发现新版本 {{ version }}</div>
-        <div class="subtitle">Seaman Team</div>
+        <div class="subtitle">Seaman</div>
       </div>
     </div>
 

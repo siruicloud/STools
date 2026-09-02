@@ -478,7 +478,7 @@ async function handleSyncToggle(): Promise<void> {
     }
 
     if (syncEnabled.value && !currentToken) {
-      warning('请先通过左下角登录 Seaman Team 账号')
+      warning('请先通过左下角登录 Seaman 账号')
       syncEnabled.value = false
       return
     }
