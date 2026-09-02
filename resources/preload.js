@@ -1409,6 +1409,9 @@ window.ztools = {
     // 获取所有已安装插件中声明的 MCP 工具列表
     mcpServerTools: async () => await electron.ipcRenderer.invoke('internal:mcp-server-tools'),
 
+    // 获取环境配置（如是否允许导入本地插件）
+    getEnvConfig: async () => await electron.ipcRenderer.invoke('internal:get-env-config'),
+
     // ==================== 调试日志 API ====================
     logEnable: async () => await electron.ipcRenderer.invoke('internal:log-enable'),
     logDisable: async () => await electron.ipcRenderer.invoke('internal:log-disable'),

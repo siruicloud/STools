@@ -30,6 +30,7 @@ import {
   type CommandAliasStore
 } from '@shared/commandShared'
 import { normalizeSearchWallpaperConfig, type SearchWallpaperConfig } from '@shared/searchWallpaper'
+import { ALLOW_LOCAL_PLUGIN_IMPORT } from '../../config/env.js'
 
 /**
  * 权限错误类
@@ -1530,6 +1531,19 @@ export class InternalPluginAPI {
         success: true,
         // 返回所有已安装插件声明的工具，供设置页展示与调试。
         data: pluginToolsAPI.getAllDeclaredToolEntries()
+      }
+    })
+
+    // 获取环境配置（如是否允许导入本地插件）
+    ipcMain.handle('internal:get-env-config', async (event) => {
+      if (!requireInternalPlugin(this.pluginManager, event)) {
+        throw new PermissionDeniedError('internal:get-env-config')
+      }
+      return {
+        success: true,
+        config: {
+          allowLocalPluginImport: ALLOW_LOCAL_PLUGIN_IMPORT
+        }
       }
     })
   }

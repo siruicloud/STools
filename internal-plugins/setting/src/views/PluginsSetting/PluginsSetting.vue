@@ -29,10 +29,13 @@ const isKillingAll = ref(false)
 const isCheckingMarketUpdates = ref(false)
 // 是否正在执行“全部更新”
 const isUpgradingAll = ref(false)
-// “全部更新”当前完成数（用于进度展示）
+// "全部更新"当前完成数（用于进度展示）
 const upgradeProgressDone = ref(0)
-// “全部更新”总任务数（用于进度展示）
+// "全部更新"总任务数（用于进度展示）
 const upgradeProgressTotal = ref(0)
+
+// 环境配置
+const allowLocalPluginImport = ref(true)
 
 // npm 安装相关状态
 const showMoreMenu = ref(false)
@@ -544,6 +547,15 @@ onMounted(async () => {
   } catch (e) {
     console.error('加载置顶列表失败:', e)
   }
+  // 加载环境配置
+  try {
+    const envConfig = await window.ztools.internal.getEnvConfig()
+    if (envConfig?.success && envConfig?.config) {
+      allowLocalPluginImport.value = envConfig.config.allowLocalPluginImport
+    }
+  } catch (e) {
+    console.error('加载环境配置失败:', e)
+  }
   await loadPlugins()
   // 如果有需要自动打开的插件，加载完成后打开详情
   window.addEventListener('keydown', handleKeydown, true)
@@ -676,7 +688,12 @@ function closeMoreMenu(event?: Event): void {
                 </svg>
               </button>
               <div v-if="showMoreMenu" class="more-menu" @click="closeMoreMenu">
-                <button class="more-menu-item" :disabled="isImporting" @click="importPlugin">
+                <button
+                  v-if="allowLocalPluginImport"
+                  class="more-menu-item"
+                  :disabled="isImporting"
+                  @click="importPlugin"
+                >
                   <svg
                     xmlns="http://www.w3.org/2000/svg"
                     width="16"
@@ -834,7 +851,13 @@ function closeMoreMenu(event?: Event): void {
           <div v-if="!isLoading && plugins.length === 0" class="empty-state">
             <div class="i-z-plugin empty-icon font-size-64px" />
             <div class="empty-text">暂无插件</div>
-            <div class="empty-hint">点击"导入本地插件"来安装你的第一个插件</div>
+            <div class="empty-hint">
+              {{
+                allowLocalPluginImport
+                  ? '点击"导入本地插件"来安装你的第一个插件'
+                  : '前往"插件市场"安装你的第一个插件'
+              }}
+            </div>
           </div>
 
           <!-- 更新栏目为空 -->
