@@ -1,8 +1,12 @@
 /**
  * 环境配置 - 统一管理所有服务域名
  *
- * 修改此文件即可切换开发/测试/生产环境
+ * 自动根据运行模式选择环境：
+ * - 打包后（生产环境）: 使用 PROD_CONFIG
+ * - 开发模式（未打包）: 使用 DEV_CONFIG
  */
+
+import { app } from 'electron'
 
 export interface EnvConfig {
   /** 同步服务域名 (登录、账号、数据同步) */
@@ -39,14 +43,11 @@ const DEV_CONFIG: EnvConfig = {
 // ==================== 当前环境 ====================
 
 /**
- * 当前使用的环境配置
- *
- * 修改此值即可切换环境：
- * - 'prod' - 生产环境
- * - 'test' - 测试环境
- * - 'dev'  - 开发环境
+ * 自动检测当前运行环境
+ * - app.isPackaged === true: 打包后的生产环境
+ * - app.isPackaged === false: 开发模式
  */
-const CURRENT_ENV: 'prod' | 'test' | 'dev' = 'prod'
+const CURRENT_ENV: 'prod' | 'test' | 'dev' = app.isPackaged ? 'prod' : 'dev'
 
 // ==================== 导出配置 ====================
 
