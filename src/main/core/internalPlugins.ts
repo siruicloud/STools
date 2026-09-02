@@ -8,7 +8,6 @@ import path from 'path'
 export const BUNDLED_INTERNAL_PLUGIN_NAMES = [
   'setting',
   'system',
-  'morse-code',
   'fullscreen-demo',
   'pdf-toolkit'
 ] as const
